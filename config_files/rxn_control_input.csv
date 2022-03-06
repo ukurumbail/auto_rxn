@@ -1,5 +1,5 @@
-Device,Bronkhorst_MFC,Bronkhorst_MFC,Bronkhorst_MFC,Bronkhorst_MFC,Bronkhorst_MFC,Eurotherm_3216,Eurotherm_3216
 SubDevice,iC4H10,O2,N2,OzO2,CO2,SP,Ramp
+Device,Bronkhorst_MFC,Bronkhorst_MFC,Bronkhorst_MFC,Bronkhorst_MFC,Bronkhorst_MFC,Eurotherm_3216,Eurotherm_3216
 Units,mL/min,mL/min,mL/min,mL/min,mL/min,C,C/min
 Emergency,0,0,40,0,0,25,0
 0,0,0,21,0,0,80,0
