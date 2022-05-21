@@ -3,69 +3,82 @@ import pandas as pd
 import importlib
 import tabulate
 import time
+import json
 import csv
 import os
 
 class Reaction():
-	def __init__(self,inputs_df,settings_df,rxn_name, rxn_dirname,use_gc):
-
+	def __init__(self,inputs_df,settings_json,rxn_name, rxn_dirname):
 		self.rxn_name = rxn_name
 		self.rxn_dirname = rxn_dirname
 
 
-		self.devices = {} #a dictionary of subdevices, organized by major device
-		self.modules = {} #a dictionary of used auxiliary communication modules, organized by major device
+		self.devices = {} #a dictionary of devices
+		self.device_parameters = {} #Keep in mind parameters vs. config. Parameters = The parameters in the recipe specific to each subdevice/control point (emergency setpt, units, parent device name)
+		self.device_config = {} #config = the metadata stored in the settings json that is used to connect to the actual device, etc.
+		self.modules = {} #a dictionary of auxiliary communication modules, organized by major device
 
-		#set up subdevices
+		#set up 
 		for subdevice_name in inputs_df.columns[1:]:
-			parent_device_name = inputs_df[subdevice_name][0]
-			units = inputs_df[subdevice_name][1]
-			emergency_setting = float(inputs_df[subdevice_name][2])
-			subdevice_setpoints = [float(i) for i in inputs_df[subdevice_name][3:]]
+			parent_device_name = inputs_df[subdevice_name][2]
+			units = inputs_df[subdevice_name][0]
+			emergency_setting = float(inputs_df[subdevice_name][1])
 
-			#initialize subdevice from relevant auxiliary communication module
-			if parent_device_name not in self.devices.keys():
-				self.modules[parent_device_name] = importlib.import_module(parent_device_name)
-				self.devices[parent_device_name] = [self.modules[parent_device_name].initialize_subdevice(subdevice_name,units,emergency_setting,subdevice_setpoints)]
+			if parent_device_name not in self.device_parameters.keys():
+				self.device_parameters[parent_device_name] = {subdevice_name: {"Units" : units,
+																"Emergency Setpoint" : emergency_setting
+																}
+															}
 			else:
-				self.devices[parent_device_name].append(self.modules[parent_device_name].initialize_subdevice(subdevice_name,units,emergency_setting,subdevice_setpoints))
+				self.device_parameters[parent_device_name][subdevice_name] = {"Units" : units,
+																"Emergency Setpoint" : emergency_setting
+																}		
+			
+		#initialize devices	
+		for device_name in self.device_parameters.keys():										
+			self.modules[device_name] = importlib.import_module(device_name)	
+			self.device_config[device_name] = settings_json[device_name]
+			self.devices[device_name] = self.modules[device_name].Device(self.device_parameters[device_name],self.device_config[device_name],mock=True)
 
 		#set up logging file
-		self.log_interval = float(settings_df["log_interval (s)"][0]) #in seconds
-		self.logfile_location = os.path.join(self.rxn_dirname, settings_df["logfile_location"][0])
-		self.log_header = list(inputs_df.columns)
-		self.log_header[0] = "Reaction Name"
-		self.log_header.insert(0,"Time")
+		self.log_interval = float(settings_json["logger"]["log_interval (s)"]) #in seconds
+		self.logfile_location = os.path.join(self.rxn_dirname, "rxn_log_{}.csv".format(self.rxn_name))
+		self.num_subdev = len(inputs_df.columns[1:])
+		self.log_header = inputs_df.columns[1:].tolist()
+		for i in range(len(self.log_header)):
+			self.log_header.append(self.log_header[i]) #doubling up all items so we can have pv and sp!
 		self.log_header = [str(i) for i in self.log_header]
+		for i in range(self.num_subdev):
+			self.log_header[i] += " SP"
+			self.log_header[i+(self.num_subdev)] += " PV"
+		self.log_header.insert(0, "Reaction Name")
+		self.log_header.insert(0,"Time")
+
 		with open(self.logfile_location,'w') as f:
 			csv_writer = csv.writer(f, delimiter=',', lineterminator='\n',quoting=csv.QUOTE_MINIMAL)
 			csv_writer.writerow(self.log_header)
 
+		#set up setpoint matrix
+		print(inputs_df.head())
+		self.setpt_matrix = inputs_df.iloc[4:,:].apply(pd.to_numeric)
 
+		#set up gc and gc logging file
+		self.gc_logfile_location = os.path.join(self.rxn_dirname, "gc_log_{}.csv".format(self.rxn_name))
+		self.gc_module_name = settings_json["main"]["GC Module Name"]
+		self.gc = self.devices[self.gc_module_name]
 
-		#set up gc and gc logging file if activated
-		if use_gc:
-			self.gc_file_location = os.path.join(self.rxn_dirname, settings_df["gc_file_location"][0])
-			self.gc_module_name = settings_df["gc_module_name"][0]
-			self.gc_module = importlib.import_module(self.gc_module_name)
-			self.gc = self.gc_module.initialize_subdevice()
-
-			with open(self.gc_file_location,'w') as f:
-				csv_writer = csv.writer(f, delimiter=',',lineterminator='\n', quoting=csv.QUOTE_MINIMAL)
-				csv_header = list(inputs_df.columns)
-				csv_header.insert(0,"Reaction Name")
-				csv_header.insert(0,"GC Run ID")
-				csv_header.insert(0,self.gc_module_name)
-				csv_header.insert(0,"GC Time Stamp")
-				csv_writer.writerow(csv_header)
-		else:
-			self.gc_file_location = None
-			self.gc_module_name = None
-			self.gc_module = None
-			self.gc = None		
+		with open(self.gc_logfile_location,'w') as f:
+			csv_writer = csv.writer(f, delimiter=',',lineterminator='\n', quoting=csv.QUOTE_MINIMAL)
+			self.gc_header = list(inputs_df.columns[1:])
+			self.gc_header.insert(0,"GC Time Stamp")
+			self.gc_header.insert(0,"GC Run ID")
+			self.gc_header.insert(0,self.gc_module_name)
+			self.gc_header.insert(0, "Reaction Name")
+			csv_writer.writerow(self.gc_header)
+	
 
 		#set up reaction time and counters
-		self.setpoint_switch_times = [60*float(i) for i in inputs_df["SubDevice"][3:]] #convert from s to min
+		self.setpoint_switch_times = [60*float(i) for i in inputs_df["Control Point Name"][4:]] #convert from min to sec
 		self.setpoint_switch_times.append(0) #The final setpt is an end setpt. No need to continue logging once this occurs. Just shut program off.
 		self.start_time = time.time()
 		self.setpoint_switch_time = 0
@@ -73,11 +86,13 @@ class Reaction():
 		self.next_sp = 0
 		self.prev_log_time = 0
 
-	def increment_setpts(self):
+	def set_setpts(self):
 		for device_name in self.devices.keys():
-			for subdevice in self.devices[device_name]:
-				subdevice.set_sp(self.next_sp)
-
+			for subdevice_name in self.devices[device_name].get_subdevice_names():
+				if self.devices[device_name].set_sp(subdevice_name,self.setpt_matrix[subdevice_name].iloc[self.next_sp]): #device should return whether setpt took successfully or not
+					#nothing
+				else:
+					self.set_emergency_sps()
 
 		self.setpoint_switch_time = time.time()
 		self.current_sp += 1
@@ -86,68 +101,106 @@ class Reaction():
 	def log(self,headers=True):
 		self.prev_log_time = time.time()
 		
-		#read all PVs
-		log_values = [time.ctime(self.prev_log_time) ,self.rxn_name]
-		for device_name in self.devices.keys():
-			for subdevice in self.devices[device_name]:
-				log_values.append(subdevice.read_pv())
+		#add time and reaction name to log
+		self.log_values = [time.ctime(self.prev_log_time) ,self.rxn_name]
 
-		#write PVs to logfile
+		#add all setpoints to log
+		for device_name in self.devices.keys():
+			for subdevice_name in self.devices[device_name].get_subdevice_names():
+				self.log_values.append(self.devices[device_name].get_sp(subdevice_name))
+		for device_name in self.devices.keys():
+			for subdevice_name in self.devices[device_name].get_subdevice_names():
+				self.log_values.append(self.devices[device_name].get_pv(subdevice_name))
+
+		#write to logfile
 		with open(self.logfile_location,'a') as f:
 			csv_writer = csv.writer(f, delimiter=',', lineterminator='\n', quoting=csv.QUOTE_MINIMAL)
-			csv_writer.writerow(log_values)
-
-		if self.is_emergency(log_values):
-			self.set_emergency_sps()
-			raise Error("Emergency! program shutting down.")
+			csv_writer.writerow(self.log_values)
 
 		if headers:
-			print(tabulate.tabulate([log_values],headers=self.log_header,floatfmt=".2f"))
+			print(tabulate.tabulate([self.log_values],headers=self.log_header,floatfmt=".2f"))
 		else:
-			print(tabulate.tabulate([log_values],floatfmt=".2f"))			
+			print(tabulate.tabulate([self.log_values],floatfmt=".2f"))			
 	
-	def is_emergency(self,log_values):
-		i = 0
+	def set_emergency_sps(self):
 		for device_name in self.devices.keys():
-			for subdevice in self.devices[device_name]:
-				emergency_values = subdevice.is_emergency(self.prev_log_time,self.setpoint_switch_time,self.current_sp,log_values[i])
+			for subdevice_name in self.devices[device_name].get_subdevice_names():
+				emergency_sp = self.devices[device_name].get_emergency_sp(subdevice_name)
+				self.devices[device_name].set_sp(subdevice_name,emergency_sp)
+
+	def log_gc(self):
+		gc_run_id = self.gc.get_run_id()
+		gc_inject_time = self.gc.get_inject_time()
+		
+		self.gc_log_values = [self.rxn_name,self.gc_module_name,gc_run_id,gc_inject_time]
+		#add all setpoints to log
+		for device_name in self.devices.keys():
+			for subdevice_name in self.devices[device_name].get_subdevice_names():
+				self.gc_log_values.append(self.devices[device_name].get_sp(subdevice_name))
+
+		with open(self.gc_logfile_location,'a') as f:
+			csv_writer = csv.writer(f, delimiter=',', lineterminator='\n', quoting=csv.QUOTE_MINIMAL)
+			csv_writer.writerow(self.gc_log_values)	
+
+
+	def is_emergency(self):
+		i = 2 #skipping Time and rxn_name log values
+		for device_name in self.devices.keys():
+			for subdevice_name in self.devices[device_name].get_subdevice_names():
+				emergency_values = self.devices[device_name].is_emergency(subdevice_name,self.prev_log_time,self.setpoint_switch_time,self.current_sp,self.log_values[i])
 				if emergency_values[0] == True: 
 					print("{}.{} in emergency. Current SP: {} Current PV: {}".format(device_name,emergency_values[1],emergency_values[2],emergency_values[3]))
 					return True
 			i += 1
-def run_rxn(inputs_df,settings_df,rxn_name,rxn_dirname,use_gc):
 
+	def email(self):
+		rxn.set_emergency_sps()
+		print("Switched to emergency setpoints. Make sure you implement this so as to avoid in the future...")
+		raise NotImplementedError()
 
+def run_rxn(inputs_df,settings_json,rxn_name,rxn_dirname):
 	print("\nInitializing devices...")
-	rxn = Reaction(inputs_df,settings_df,rxn_name,rxn_dirname,use_gc)
+	rxn = Reaction(inputs_df,settings_json,rxn_name,rxn_dirname)
 	
 	print("Starting reaction.")
 
 
 	#beginning reaction
 	print("\nSwitching setpoints...")
-	rxn.increment_setpts()
+	rxn.set_setpts()
 	print("Setpoints switched.\n")
 
 	log_counter = 0
 	reaction_finished = False
 	while not reaction_finished:
 		#Switch setpoints if time has elapsed
-		if time.time() >= (rxn.start_time+rxn.setpoint_switch_times[rxn.next_sp]):
-			if rxn.next_sp == (len(rxn.setpoint_switch_times)-1):
-					reaction_finished=True
-			else:
-				print("\nSwitching setpoints...")
-				rxn.increment_setpts()
-				print("Setpoints switched.\n")
-
+		if time.time() >= (rxn.setpoint_switch_time+rxn.setpoint_switch_times[rxn.next_sp]):
+			if rxn.gc.all_samples_collected():
+				if rxn.next_sp == (len(rxn.setpoint_switch_times)-1):
+						reaction_finished=True
+				else:
+					print("\nSwitching setpoints...")
+					rxn.set_setpts()
+					print("Setpoints switched.\n")
+			time.sleep(5)
 		if time.time() >= (rxn.prev_log_time+rxn.log_interval):
 			rxn.log()
 			log_counter += 1
+			if rxn.is_emergency():
+				rxn.set_emergency_sps()
+				raise NotImplementedError("Emergency! program shutting down. TBD- create a specific Exception class.")
 
-	
+			if not rxn.gc.all_samples_collected():
+				if rxn.gc.ready():
+					print("\nInjecting new GC sample...")
+					if rxn.gc.inject():
+						print("Injection successful.\n")
+						rxn.log_gc()
+					else:
+						print("Injection unsuccessful!\n")
+						rxn.email("Unsuccessful GC injection occurred @ {}\n".format(time.ctime(time.time)))
+
 		time.sleep(5)
-
 
 	rxn.log()
 	print("Reaction completed. Finished logging.")

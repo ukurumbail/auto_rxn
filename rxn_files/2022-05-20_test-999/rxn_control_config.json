@@ -1,0 +1,60 @@
+{	
+	"main" : {
+		"GC Module Name" : "inficon_gc"
+	},
+	"logger" : {
+		"log_interval (s)" : 5
+		},
+	"inficon_gc" : {
+		"GC Module Name" : "inficon_gc",
+		"IP Address" : "DUMMY",
+		"Subdevices" :{
+			"Number of Samples" : {},
+			"Method Name" : {}
+			}
+		},
+
+	"eurotherm_3216" : {
+		"port" : "COM4",
+		"address" : 1,
+		"baudrate" : 9600,
+		"timeout" : 1,
+		"Test Register" : 131,
+		"Test Value" : 1,
+		"Subdevices" : {
+			"Furnace Temp" : {"Register" : 32772},
+			"Ramp" : {"Register" :1000000},
+			"Ramp PV" : {"Register" :1000000},
+			"PV" : {"Register" : 32770},
+			"Test" : {"Register" : 131, "Value" : 1}
+			}
+		},
+	"bronkhorst_mfc" : {
+		"port" : "COM3",
+		"baudrate" : 38400,
+		"timeout" : 1,
+		"Flow Wait Time(h)" : 0.16666667,
+		"Subdevices" : {
+		 	"iC4H10" : {
+				"node" : 50,
+				"Max Flow" : 60,
+				"Correction Factor" : 1},
+			"O2" : {
+				"node" : 40,
+				"Max Flow" : 60,
+				"Correction Factor" : 1},
+			"N2" : {
+				"node" : 30,
+				"Max Flow" : 120,
+				"Correction Factor" : 1},
+			"OzO2" : {
+				"node" : 20,
+				"Max Flow" : 30,
+				"Correction Factor" : 1},
+			"CO2" : {
+				"node" : 10,
+				"Max Flow" : 30,
+				"Correction Factor" : 1}
+			}
+		}
+}

@@ -1,53 +1,61 @@
 """Console script for auto_rxn."""
 import os
+import json
 import click
+import shutil
+import pathlib
 import auto_rxn
 import pandas as pd
 from tkinter.filedialog import askopenfilename
 
 @click.command()
-@click.option('--input_file',default=None,help='Filepath for reaction input file utilized by rxn control.')
-@click.option('--settings_file', default='../config_files/rxn_control_settings.csv', help='Filepath for settings file utilized by rxn control.')
-@click.option('--storage_directory', default='../rxn_files/', help='Directory to store all outputs in.')
-@click.option('--rxn_name', prompt='Name for reaction', help='This name will be utilized to create a subdirectory for your reaction files.')
-def main(input_file,settings_file,storage_directory,rxn_name):
+@click.option('--recipe_file',default=None,help='Filename for reaction input file utilized by rxn control.')
+@click.option('--settings_file', default='rxn_control_config.json', help='Filename for settings file utilized by rxn control.')
+@click.option('--recipe_directory',default='input_files',help='Directory for reaction input file utilized by rxn control.')
+@click.option('--settings_directory', default='config_files', help='Directory for settings file utilized by rxn control.')
+@click.option('--storage_directory', default='rxn_files', help='Directory to store all outputs in.')
+@click.option('--rxn_name', default='2022-05-20_test-999', help='This name will be utilized to create a subdirectory for your reaction files.') #prompt='Name for reaction'
+def main(recipe_file,settings_file,recipe_directory,settings_directory,storage_directory,rxn_name):
 	"""Console script for auto_rxn."""
-	dirname = os.path.dirname(__file__)
+	dirname = pathlib.Path.cwd()
 
 	#create new rxn folder
 	click.echo('Checking for existing folder with that name...')
 	folder_created = False
 	while not folder_created:
+		print(dirname,storage_directory)
 		rxn_dirname = os.path.join(dirname, storage_directory)
 		rxn_dirname = os.path.join(rxn_dirname,rxn_name)
 		if os.path.isdir(rxn_dirname):
-			click.echo('Directory already exists, please enter new rxn_name. Selected directory name: {}'.format(rxn_dirname))
-			rxn_name = input("Enter new reaction name here: ")
+			#click.echo('Directory already exists, please enter new rxn_name. Selected directory name: {}'.format(rxn_dirname))
+			#rxn_name = input("Enter new reaction name here: ")
+			pass
+			folder_created=True
 		else:
 			os.mkdir(rxn_dirname)
 			folder_created=True
 
-	#generate settings and input files
 	click.echo('Subdirectory successfully created.')
-	settings_file = os.path.join(dirname, settings_file) #turn relative path into absolute path
-	if input_file is None:
-		input_file= askopenfilename(initialdir="../input_files",title="Select Reaction Inputs File",filetypes=[("CSV", "*.csv")])
-	inputs_df = pd.read_csv(input_file)
-	settings_df = pd.read_csv(settings_file,dtype=str)
 
-	#select whether to access gc or not
-	response = ''
-	while response not in ["yes","no"]:
-		response = input("Use GC? (yes/no): ")
-	if response == "no":
-		use_gc = False
-	elif response == "yes":
-		use_gc = True
-	else:
-		raise NotImplementedError()
+	#copy settings and recipe files over to new directory
+	settings_dirname = os.path.join(dirname, settings_directory) #turn relative path into absolute path
+	settings_file_full = os.path.join(settings_dirname, settings_file) #turn relative path into absolute path
+	shutil.copy2(settings_file_full,rxn_dirname)
+
+	if recipe_file is None :
+		raise ValueError("Must include a recipe file name")
+	recipe_dirname = os.path.join(dirname, recipe_directory) #turn relative path into absolute path
+	recipe_file_full = os.path.join(recipe_dirname, recipe_file) #turn relative path into absolute path
+	shutil.copy2(recipe_file_full,rxn_dirname)
+
+
+	#load config/settings and recipe (params / setpoints)
+	with open(settings_file_full, 'r') as f:
+		settings_json = json.load(f)
+	inputs_df = pd.read_csv(recipe_file_full)
 
 	#initialize and begin reaction
-	auto_rxn.run_rxn(inputs_df,settings_df,rxn_name,rxn_dirname,use_gc)
+	auto_rxn.run_rxn(inputs_df,settings_json,rxn_name,rxn_dirname)
 
 
 if __name__ == "__main__":

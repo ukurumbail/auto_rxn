@@ -1,0 +1,14 @@
+{
+	"port" : "COM4",
+	"address" : 1,
+	"baudrate" : 9600,
+	"timeout" : 1,
+	"PV Register" : 32770,
+	"SP Register" : 32772,
+	"Test Register" : 131,
+	"Test Value" : 1,
+	"Name" : "T",
+	"Furnace Offset" : 21
+}
+	
+	

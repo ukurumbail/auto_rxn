@@ -1,0 +1,51 @@
+{
+	"num_controllers" : 4,
+	"connection_settings" : {
+		"Port" : "COM3",
+		"baudrate" : 38400,
+		"timeout" : 1
+	},
+	"controller_settings" : 
+	[
+		{
+			"Name" : "O2",
+			"Port" : "COM3",
+			"Node" : 10,
+			"Max Flow" : 60,
+			"Emergency Flow" : 0,
+			"Gas" : "OzO2",
+			"Correction Factor" : 1,
+			"Emergency Flow" : 0
+		},
+		{
+			"Name" : "CH2 O2",
+			"Port" : "COM3",
+			"Node" : 20,			
+			"Max Flow" : 30,
+			"Emergency Flow" : 0,
+			"Gas" : "O2",
+			"Correction Factor" : 1,
+			"Emergency Flow" : 0
+		},
+		{
+			"Name" : "N2",
+			"Port" : "COM3",
+			"Node" : 30,			
+			"Max Flow" : 120,
+			"Emergency Flow" : 40,
+			"Gas" : "N2",
+			"Correction Factor" : 1,
+			"Emergency Flow" : 40
+		},
+		{
+			"Name" : "iC4H10",
+			"Port" : "COM3",
+			"Node" : 50,			
+			"Max Flow" : 60,
+			"Emergency Flow" : 0,
+			"Gas" : "Butane",
+			"Correction Factor" : 1,
+			"Emergency Flow" : 0
+		}
+	]
+}
