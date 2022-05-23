@@ -38,7 +38,7 @@ class Reaction():
 		for device_name in self.device_parameters.keys():										
 			self.modules[device_name] = importlib.import_module(device_name)	
 			self.device_config[device_name] = settings_json[device_name]
-			self.devices[device_name] = self.modules[device_name].Device(self.device_parameters[device_name],self.device_config[device_name],mock=True)
+			self.devices[device_name] = self.modules[device_name].Device(self.device_parameters[device_name],self.device_config[device_name])
 
 		#set up logging file
 		self.log_interval = float(settings_json["logger"]["log_interval (s)"]) #in seconds

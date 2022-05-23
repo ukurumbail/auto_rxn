@@ -23,15 +23,16 @@ def main(recipe_file,settings_file,recipe_directory,settings_directory,storage_d
 
 		rxn_dirname = os.path.join(dirname, storage_directory)
 		rxn_dirname = os.path.join(rxn_dirname,rxn_name)
+
+		settings_dirname = os.path.join(dirname, settings_directory) #turn relative path into absolute path
+
 		if os.path.isdir(rxn_dirname):
-			#click.echo('Directory already exists, please enter new rxn_name. Selected directory name: {}'.format(rxn_dirname))
-			#rxn_name = input("Enter new reaction name here: ")
 			pass
 		else:
 			raise ValueError("Reaction not found at location: {}".format(rxn_dirname))
 
 		click.echo('Found reaction. Beginning analysis.')
-		postrun_analysis.analyze(rxn_dirname)
+		postrun_analysis.analyze(rxn_dirname,settings_dirname)
 
 
 	if run_or_analyze == "run":
@@ -45,8 +46,8 @@ def main(recipe_file,settings_file,recipe_directory,settings_directory,storage_d
 			rxn_dirname = os.path.join(dirname, storage_directory)
 			rxn_dirname = os.path.join(rxn_dirname,rxn_name)
 			if os.path.isdir(rxn_dirname):
-				#click.echo('Directory already exists, please enter new rxn_name. Selected directory name: {}'.format(rxn_dirname))
-				#rxn_name = input("Enter new reaction name here: ")
+				click.echo('Directory already exists, please enter new rxn_name. Selected directory name: {}'.format(rxn_dirname))
+				rxn_name = input("Enter new reaction name here: ")
 				pass
 				folder_created=True
 			else:

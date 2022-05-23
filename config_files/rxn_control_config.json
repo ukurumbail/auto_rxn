@@ -32,7 +32,7 @@
 							  "PV Read Address" : 32770,
 							   "Max Setting" : 800,
 							   "Change Wait Time" : 600,
-							   "Dev Lim" : 2,
+							   "Dev Lim" : 0.1,
 							   "Dev Type" : "Change from previous",
 								"Analysis Device Type" : "Reactor Temp",
 								"T Correction" : 21},
