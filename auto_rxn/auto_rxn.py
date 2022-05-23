@@ -61,11 +61,19 @@ class Reaction():
 		#set up setpoint matrix
 		print(inputs_df.head())
 		self.setpt_matrix = inputs_df.iloc[4:,:].apply(pd.to_numeric)
+		for subdev_name in self.setpt_matrix.columns[1:]: #check to make sure each sp is below its max
+			parent_device_name = inputs_df[subdev_name][2]
+			for sp in self.setpt_matrix[subdev_name]:
+				config_max = self.device_config[parent_device_name]["Subdevices"][subdev_name]["Max Setting"]
+				if config_max != "None" and sp > config_max:
+					raise ValueError("Configured SP {} for subdevice {} exceeds max {}".format(sp,subdev_name,config_max))
+
 
 		#set up gc and gc logging file
 		self.gc_logfile_location = os.path.join(self.rxn_dirname, "gc_log_{}.csv".format(self.rxn_name))
 		self.gc_module_name = settings_json["main"]["GC Module Name"]
 		self.gc = self.devices[self.gc_module_name]
+		self.gc_needs_logging = False
 
 		with open(self.gc_logfile_location,'w') as f:
 			csv_writer = csv.writer(f, delimiter=',',lineterminator='\n', quoting=csv.QUOTE_MINIMAL)
@@ -87,11 +95,13 @@ class Reaction():
 		self.prev_log_time = 0
 
 	def set_setpts(self):
+
 		for device_name in self.devices.keys():
 			for subdevice_name in self.devices[device_name].get_subdevice_names():
 				if self.devices[device_name].set_sp(subdevice_name,self.setpt_matrix[subdevice_name].iloc[self.next_sp]): #device should return whether setpt took successfully or not
-					#nothing
+					pass
 				else:
+					print("Emergency!~")
 					self.set_emergency_sps()
 
 		self.setpoint_switch_time = time.time()
@@ -128,9 +138,11 @@ class Reaction():
 				emergency_sp = self.devices[device_name].get_emergency_sp(subdevice_name)
 				self.devices[device_name].set_sp(subdevice_name,emergency_sp)
 
-	def log_gc(self):
-		gc_run_id = self.gc.get_run_id()
-		gc_inject_time = self.gc.get_inject_time()
+		raise Error("Emergency!")
+
+	def create_gc_log(self):
+		gc_run_id = None
+		gc_inject_time = time.time()
 		
 		self.gc_log_values = [self.rxn_name,self.gc_module_name,gc_run_id,gc_inject_time]
 		#add all setpoints to log
@@ -138,6 +150,7 @@ class Reaction():
 			for subdevice_name in self.devices[device_name].get_subdevice_names():
 				self.gc_log_values.append(self.devices[device_name].get_sp(subdevice_name))
 
+	def log_gc(self):
 		with open(self.gc_logfile_location,'a') as f:
 			csv_writer = csv.writer(f, delimiter=',', lineterminator='\n', quoting=csv.QUOTE_MINIMAL)
 			csv_writer.writerow(self.gc_log_values)	
@@ -174,7 +187,9 @@ def run_rxn(inputs_df,settings_json,rxn_name,rxn_dirname):
 	reaction_finished = False
 	while not reaction_finished:
 		#Switch setpoints if time has elapsed
-		if time.time() >= (rxn.setpoint_switch_time+rxn.setpoint_switch_times[rxn.next_sp]):
+		if time.time() >= (rxn.setpoint_switch_time+rxn.setpoint_switch_times[rxn.current_sp]):
+			print("time is ready for next switch!")
+			print("{} <- curr time sp_switch_time -> {} duration -> {}".format(time.time(),rxn.setpoint_switch_time,rxn.setpoint_switch_times[rxn.next_sp]))
 			if rxn.gc.all_samples_collected():
 				if rxn.next_sp == (len(rxn.setpoint_switch_times)-1):
 						reaction_finished=True
@@ -190,22 +205,46 @@ def run_rxn(inputs_df,settings_json,rxn_name,rxn_dirname):
 				rxn.set_emergency_sps()
 				raise NotImplementedError("Emergency! program shutting down. TBD- create a specific Exception class.")
 
+			if rxn.gc_needs_logging:
+				new_run_id = rxn.gc.get_last_run_id()
+				if new_run_id == -999:
+					rxn.email("Failed to get previous run id!")
+				if new_run_id != rxn.gc.prev_run_id:
+					rxn.gc_log_values[2] = new_run_id
+					rxn.gc.prev_run_id = new_run_id
+					rxn.log_gc()
+					rxn.gc_needs_logging = False
 			if not rxn.gc.all_samples_collected():
+				time.sleep(2)
 				if rxn.gc.ready():
 					print("\nInjecting new GC sample...")
 					if rxn.gc.inject():
 						print("Injection successful.\n")
-						rxn.log_gc()
+						rxn.create_gc_log()
+						rxn.gc_needs_logging = True
 					else:
 						print("Injection unsuccessful!\n")
 						rxn.email("Unsuccessful GC injection occurred @ {}\n".format(time.ctime(time.time)))
 
 		time.sleep(5)
 
-	rxn.log()
+
+	while not rxn.gc.ready(): #wait for gc to finish up if needed
+		time.sleep(10)
+		rxn.log()
+
+	if rxn.gc_needs_logging: #finish logging the last gc run
+		new_run_id = rxn.gc.get_last_run_id()
+		if new_run_id == -999:
+			rxn.email("Failed to get previous run id!")
+		if new_run_id != rxn.gc.prev_run_id:
+			rxn.gc_log_values[2] = new_run_id
+			rxn.gc.prev_run_id = new_run_id
+			rxn.log_gc()
+			rxn.gc_needs_logging = False		
+
+
 	print("Reaction completed. Finished logging.")
 
 
-
-#initialize_subdevice()
 

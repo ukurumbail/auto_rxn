@@ -1,32 +1,51 @@
 {	
 	"main" : {
-		"GC Module Name" : "inficon_gc"
+		"GC Module Name" : "inficon_gc",
+		"Subdevices": {}
 	},
 	"logger" : {
-		"log_interval (s)" : 5
+		"log_interval (s)" : 5,
+		"Subdevices" :{}
 		},
 	"inficon_gc" : {
 		"GC Module Name" : "inficon_gc",
-		"IP Address" : "DUMMY",
+		"IP Address" : "169.254.1.1",
+		"Default Method" : "UK_C3ODH_01-23-22",
+		"Type" : "GC",
 		"Subdevices" :{
-			"Number of Samples" : {},
-			"Method Name" : {}
+			"Number of Samples" : {"Max Setting" : "None","Analysis Device Type" : "None"},
+			"Method Name" : {"Max Setting" : "None","Analysis Device Type" : "None"}
 			}
 		},
 
 	"eurotherm_3216" : {
-		"port" : "COM4",
+		"port" : "COM5",
 		"address" : 1,
 		"baudrate" : 9600,
 		"timeout" : 1,
 		"Test Register" : 131,
 		"Test Value" : 1,
 		"Subdevices" : {
-			"Furnace Temp" : {"Register" : 32772},
-			"Ramp" : {"Register" :1000000},
-			"Ramp PV" : {"Register" :1000000},
-			"PV" : {"Register" : 32770},
-			"Test" : {"Register" : 131, "Value" : 1}
+			"Furnace Temp" : {"Type" : "Float",
+							  "SP Write Address" : 32772,
+							  "SP Read Address" : 32772,
+							  "PV Read Address" : 32770,
+							   "Max Setting" : 800,
+							   "Change Wait Time" : 600,
+							   "Dev Lim" : 2,
+							   "Dev Type" : "Change from previous",
+								"Analysis Device Type" : "Reactor Temp",
+								"T Correction" : 21},
+			"Ramp Rate" : {   "Type" : "Long",
+							  "SP Write Address" : 33830,
+							  "SP Read Address" : 33830,
+							  "PV Read Address" : 33830,
+							   "Max Setting" : 100,
+							   "Change Wait Time" : 5,
+							   "Dev Lim" : 0.01,
+							   "Dev Type" : "Within setpt tolerance",
+								"Analysis Device Type" : "None"},
+			"Test" : {"Register" : 131, "Value" : 1,"Max Setting" : "None","Analysis Device Type" : "None"}
 			}
 		},
 	"bronkhorst_mfc" : {
@@ -37,20 +56,32 @@
 		"Subdevices" : {
 		 	"iC4H10" : {
 				"node" : 50,
-				"Max Flow" : 60,
-				"Correction Factor" : 1},
+				"Max Setting" : 60,
+				"Correction Factor" : 0.77,
+				"Flow Dev Lim" : 2,
+			"Analysis Device Type" : "Flow",
+			"Major Reactant" : "True"},
 			"O2" : {
 				"node" : 40,
-				"Max Flow" : 60,
-				"Correction Factor" : 1},
+				"Max Setting" : 60,
+				"Correction Factor" : 1.023,
+				"Flow Dev Lim" : 2,
+			"Analysis Device Type" : "Flow",
+			"Major Reactant" : "False"},
 			"N2" : {
 				"node" : 30,
-				"Max Flow" : 120,
-				"Correction Factor" : 1},
+				"Max Setting" : 120,
+				"Correction Factor" : 1,
+				"Flow Dev Lim" : 2,
+			"Analysis Device Type" : "Flow",
+			"Major Reactant" : "False"},
 			"OzO2" : {
 				"node" : 20,
-				"Max Flow" : 30,
-				"Correction Factor" : 1}
+				"Max Setting" : 30,
+				"Correction Factor" : 1.019,
+				"Flow Dev Lim" : 2,
+			"Analysis Device Type" : "Flow",
+			"Major Reactant" : "False"}
 			}
 		}
 }

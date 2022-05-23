@@ -1,9 +1,8 @@
 import serial
-
+import time
 
 class Device():
 	def __init__(self,params,config,mock=False):
-		mock=False
 		self.config = config
 		self.params = params
 		self.flow_wait_time = self.config["Flow Wait Time (sec)"]
@@ -25,7 +24,7 @@ class Device():
 			#initializing each controller with its specific max flow, name, etc.
 			for subdev_name in config["Subdevices"].keys():
 				self.subdevices[subdev_name] = Subdevice(subdev_name,params[subdev_name],config["Subdevices"][subdev_name])
-				self.subdevices[subdev_name].set_control_mode() #Sets control mode to accept RS-232 setpoints
+				self.subdevices[subdev_name].set_control_mode(self.ser) #Sets control mode to accept RS-232 setpoints
 				time.sleep(1)	
 
 	def get_pv(self,subdev_name):
@@ -45,16 +44,18 @@ class Device():
 
 	def get_emergency_sp(self,subdev_name):
 		return self.subdevices[subdev_name].emergency_setting
-
+	def get_max_setting(self,subdev_name):
+		return self.subdevices[subdev_name].get_max_setting()
 
 class Mock_Subdevice():
 	def __init__(self,name,params,config):
 		self.name = name
 		self.units = params["Units"]
-		self.max_flow = config["Max Flow"]
+		self.max_setting = config["Max Setting"]
 		self.emergency_setting = params["Emergency Setpoint"]
 		self.node = config["node"]
 		self.current_sp = None
+		self.flow_dev_lim = config["Flow Dev Lim"]
 
 	def is_emergency(self,flow_wait_time,pv_read_time,sp_set_time,current_sp,current_pv):
 		return [False,self.name,current_sp,current_pv]
@@ -66,7 +67,8 @@ class Mock_Subdevice():
 
 	def get_sp(self,ser):
 		return self.current_sp
-
+	def get_max_setting(self):
+		return self.max_setting
 
 class Subdevice():
 
@@ -76,14 +78,21 @@ class Subdevice():
 	def __init__(self,name,params,config):
 		self.name = name
 		self.units = params["Units"]
-		self.max_setting = config["Max Flow"]
-		self.emergency_setting = params["Emergency Setpoint"]
-		self.node = config["node"]
+		self.max_setting = str(config["Max Setting"])
+		self.emergency_setting = float(params["Emergency Setpoint"])
+		self.node = '{:02x}'.format(int(config["node"]))
 		self.current_sp = None
+		self.flow_dev_lim = float(config["Flow Dev Lim"])
 
 	def is_emergency(self,flow_wait_time,pv_read_time,sp_set_time,current_sp,current_pv):
-		if (pv_read_time-sp_set_time > flow_wait_time) and 
-		return [False,self.name,current_sp,current_pv]
+		if (pv_read_time-sp_set_time > flow_wait_time):
+			if current_pv > (current_sp+self.flow_dev_lim) or current_pv<(current_sp-self.flow_dev_lim):
+				print("Error in: {} Current PV: {} Current SP: {} Current Flow dev lim: {}".format(self.name,current_pv,current_sp,self.flow_dev_lim))
+				return [True,self.name,current_sp,current_pv]
+			else:
+				return [False,self.name,current_sp,current_pv]
+		else:
+			return [False,self.name,current_sp,current_pv]
 
 	def get_pv(self,ser):
 		""" Read the actual flow """ #If 10 errors then returns -99
@@ -104,9 +113,9 @@ class Subdevice():
 		return pressure
 
 
-	def set_sp(self,ser,setpoint):
-		if setpoint > 0:
-			setpoint = (float(setpoint) / float(self.max_setting)) * 32000
+	def set_sp(self,ser,setpoint_in):
+		if setpoint_in > 0:
+			setpoint = (float(setpoint_in) / float(self.max_setting)) * 32000
 			setpoint = hex(int(setpoint))
 			setpoint = setpoint.upper()
 			setpoint = setpoint[2:].rstrip('L')
@@ -123,19 +132,20 @@ class Subdevice():
 		
 		if response_check == '000005':
 			response = True
+			self.current_sp = setpoint_in
 		else:
 			response = False
 		
-		self.current_sp = setpoint
 		return response
 
 
 	def get_sp(self,ser):
-		read_setpoint = ':06' + self.node + '0401210121\r\n' # Read setpoint
-		response = self.comm(ser,read_setpoint)
-		response = int(response[11:], 16) #Grabs last 4 hex numbers and converts to decimal
-		response = (float(response) / 32000.0) * float(self.max_setting) #response / 32000 gives percentage, then multiply by max setting
-		return response
+		# read_setpoint = ':06' + self.node + '0401210121\r\n' # Read setpoint
+		# response = self.comm(ser,read_setpoint)
+		# response = int(response[11:], 16) #Grabs last 4 hex numbers and converts to decimal
+		# response = (float(response) / 32000.0) * float(self.max_setting) #response / 32000 gives percentage, then multiply by max setting
+		# return response
+		return self.current_sp
 
 
 	def comm(self, ser, command):
@@ -146,3 +156,12 @@ class Subdevice():
 		return_string = ser.read(ser.inWaiting())
 		return_string = return_string.decode()
 		return return_string
+
+	def set_control_mode(self,ser):
+		""" Set the control mode to accept rs232 setpoint """
+		set_control = ':05' + self.node + '01010412\r\n' #Sets control mode to value 18 (rs232)
+		response = self.comm(ser,set_control)
+		return str(response)
+		
+	def get_max_setting(self):
+		return self.max_setting
