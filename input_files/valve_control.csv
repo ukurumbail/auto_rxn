@@ -1,0 +1,8 @@
+Control Point Name,4-way,6-way,Number of Samples
+Control Point Units,None,None,None
+Control Point Emergency Value,0,0,0
+Control Point Parent Device Name,vici_valves,vici_valves,inficon_gc
+RECPE_STARTS_BELOW,,,
+0.15,1,1,0
+0.25,1,2,0
+0.25,1,1,0

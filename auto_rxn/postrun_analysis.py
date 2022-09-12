@@ -4,12 +4,20 @@ import json
 import time
 import os
 import shutil
+import requests
+import csv
 from openpyxl import load_workbook
 
-def get_run_data(run_id):
-	with open("./auto_rxn/bp_json.json",'r') as f:
-		bp_json = json.load(f)
-	return bp_json
+def get_run_data(run_id,ip):
+	if ip is None: #mock!
+		with open("./auto_rxn/bp_json.json",'r') as f:
+			bp_json = json.load(f)
+		return bp_json
+	else:
+		time.sleep(1)
+		return requests.get("http://"+ip+"/v1/runData/"+run_id).json()
+
+
 
 def analyze(rxn_dirname,settings_dirname):
 	#takes in the directory for a reaction and produces an analysis
@@ -33,12 +41,20 @@ def analyze(rxn_dirname,settings_dirname):
 				if subdev_name in df.columns:
 					subdev_configs[subdev_name] = dev["Subdevices"][subdev_name]
 
+	gc_name = settings_json["main"]["GC Module Name"]
+	ip = settings_json[gc_name]["IP Address"]
+
+
 	#Apply temperature correction
+	found_T = False
 	for subdev in df.columns:
 		if subdev not in ["Reaction Name","inficon_gc","GC Run ID","GC Time Stamp"]:	
 			if subdev_configs[subdev]["Analysis Device Type"] == "Reactor Temp":
 				df["Reactor Temperature Corrected"] = df[subdev] + subdev_configs[subdev]["T Correction"]
+				found_T = True
 
+	if not found_T:
+		df["Reactor Temperature Corrected"] = 999999 #Dummy column for analysis. Treat all data like rxn data
 	#Apply flow correction
 	flow_subdevs = []
 	for subdev in df.columns:
@@ -88,29 +104,45 @@ def analyze(rxn_dirname,settings_dirname):
 	gc_areas = {}
 	gc_rts = {}
 	df = df.reset_index()
-	for i, row in df.iterrows():
-		if df["Type"][i] != "Unanalyzed":
-			run_id = row["GC Run ID"]
-			gc_data = get_run_data(run_id)
-			#time.sleep(2)
-			gc_detector_data = gc_data["detectors"]
-			for detector in ["moduleA:tcd","moduleB:tcd","moduleC:tcd"]:
-				peaks = gc_detector_data[detector]["analysis"]["peaks"]
-				for peak in peaks:
-					if "label" not in peak.keys(): #the gc data reports peaks that aren't named as well. skip those
-						pass
-					else:
-						if peak["label"] not in gc_areas.keys(): #if it's the first time we've run across this species
-							gc_areas[peak["label"]] = [peak["area"]]
-							gc_rts[peak["label"]] = [peak["top"]]
-						else: #otherwise just append
-							gc_areas[peak["label"]].append(peak["area"])
-							gc_rts[peak["label"]].append(peak["top"])
 
-	#add GC data to arrays\
+	for i, row in df.iterrows():
+		run_id = row["GC Run ID"]
+		print("Loading gc row {} with id {}".format(i,run_id))
+
+		# if df["Type"][i] != "Unanalyzed":
+
+		gc_data = get_run_data(run_id,ip)
+		#time.sleep(2)
+		gc_detector_data = gc_data["detectors"]
+		for detector in ["moduleA:tcd","moduleB:tcd","moduleC:tcd"]:
+			peaks = gc_detector_data[detector]["analysis"]["peaks"]
+			for peak in peaks:
+				if "label" not in peak.keys():
+					pass #unlabelled peaks are ignored
+				else:
+					if peak["label"] not in gc_areas.keys(): #if it's the first time we've run across this species
+						gc_areas[peak["label"]] = [peak["area"]]
+						gc_rts[peak["label"]] = [peak["top"]]
+					else: #otherwise just append
+						gc_areas[peak["label"]].append(peak["area"])
+						gc_rts[peak["label"]].append(peak["top"])
+
+	df_for_data_dump = df.copy()
+
+	#add GC data to arrays
 	for species in gc_areas.keys():
 		df[species] = gc_areas[species]
+		df_for_data_dump[species] = gc_areas[species] #don't add RT
+
+	for species in gc_areas.keys():	
 		df[species+" RT"] = gc_rts[species]
+
+
+
+	df_for_data_dump["GC Time Stamp Formatted"] = df_for_data_dump["GC Time Stamp"].apply(time.ctime)
+	df_for_data_dump.sort_values(by=["GC Time Stamp"])
+	df_for_data_dump.to_excel(rxn_dirname+"\\"+rxn_name+" gc data.xlsx")
+
 
 
 
@@ -196,9 +228,11 @@ def analyze(rxn_dirname,settings_dirname):
 			for (flow,rows) in rowset.items():
 				sorted_rows[idx][T][flow] = rows[-3:]
 
+
+
 	#Now begin writing to files
 	for (idx,dataset) in sorted_rows.items():
-		
+
 		#Creating copy of analysis file
 		filestr = rxn_dirname + "\\" + rxn_name+ "_Analysis" 
 		for species, pct in zip(flow_subdevs,flow_pcts[idx]):
@@ -209,7 +243,7 @@ def analyze(rxn_dirname,settings_dirname):
 			filestr += str(pct) 
 		filestr += ".xlsx"
 		print(filestr)
-		shutil.copy2(settings_dirname+"\\AnalysisTemplate.xlsx",filestr)
+		shutil.copy2(settings_dirname+"\\AnalysisTemplate.xlsx",filestr)	
 
 		#Constructing new dataframe to add to template
 		df = pd.DataFrame(columns = df_bypass.columns)
@@ -260,15 +294,20 @@ def analyze(rxn_dirname,settings_dirname):
 				i = 0 
 
 
+		#final dataframe edits
+		df = df.drop(['level_0','index'],axis=1)
+		df["GC Time Stamp"] = df["GC Time Stamp"].apply(lambda x: x if x is None else time.ctime(x)) #convert to readable time
+
 		#https://stackoverflow.com/questions/42370977/how-to-save-a-new-sheet-in-an-existing-excel-file-using-pandas
 		book = load_workbook(filestr)
+		book.remove(book['gc_data_from_prog'])
+
 		writer = pd.ExcelWriter(filestr, engine = 'openpyxl')
 		writer.book = book
-		df = df.drop(['level_0','index'],axis=1)
 		df.to_excel(writer, sheet_name = 'gc_data_from_prog',index=False)
-		print("Printed to Analysis Template")
 		writer.save()
 		writer.close()
+	print("Successfully wrote to analysis files.")
 
 
 

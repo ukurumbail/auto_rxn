@@ -1,8 +1,12 @@
-Control Point Name,iC4H10,O2,N2,OzO2,Furnace Temp,Number of Samples
-Control Point Units,mL/min,mL/min,mL/min,mL/min,degC,None
-Control Point Emergency Value,0,0,50,0,25,0
-Control Point Parent Device Name,bronkhorst_mfc,bronkhorst_mfc,bronkhorst_mfc,bronkhorst_mfc,eurotherm_3216,inficon_gc
+Control Point Name,iC4H10,H2,N2,OzO2,CO2,Number of Samples
+Control Point Units,mL/min,mL/min,mL/min,mL/min,mL/min,None
+Control Point Emergency Value,0,0,50,0,0,0
+Control Point Parent Device Name,bronkhorst_mfc,bronkhorst_mfc,bronkhorst_mfc,bronkhorst_mfc,bronkhorst_mfc,inficon_gc
 RECPE_STARTS_BELOW,,,,,,
-30,9.24,6.138,22,0,25,6
-30,18.48,12.276,44,0,25,6
-30,27.72,18.414,66,0,25,6
+35,3.0532,0,20.979,0,0,6
+35,3.0532,0,20.979,0,0,6
+25,0,0,99.9,0,0,0
+337,0,19.644,79.92,0,0,5
+70,0,0,99.9,0,0,0
+720,3.0532,0,20.979,0,0,133
+70,0,0,79.92,0,0,5

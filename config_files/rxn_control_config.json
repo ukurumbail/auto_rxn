@@ -37,9 +37,9 @@
 								"Analysis Device Type" : "Reactor Temp",
 								"T Correction" : 21},
 			"Ramp Rate" : {   "Type" : "Long",
-							  "SP Write Address" : 33830,
-							  "SP Read Address" : 33830,
-							  "PV Read Address" : 33830,
+							  "SP Write Address" : 32838,
+							  "SP Read Address" : 32838,
+							  "PV Read Address" : 32838,
 							   "Max Setting" : 100,
 							   "Change Wait Time" : 5,
 							   "Dev Lim" : 0.01,
@@ -57,31 +57,58 @@
 		 	"iC4H10" : {
 				"node" : 50,
 				"Max Setting" : 60,
-				"Correction Factor" : 0.77,
+				"Correction Factor" : 0.7627,
 				"Flow Dev Lim" : 2,
 			"Analysis Device Type" : "Flow",
 			"Major Reactant" : "True"},
-			"O2" : {
+			"H2" : {
 				"node" : 40,
 				"Max Setting" : 60,
-				"Correction Factor" : 1.023,
+				"Correction Factor" : 0.9822,
 				"Flow Dev Lim" : 2,
 			"Analysis Device Type" : "Flow",
 			"Major Reactant" : "False"},
 			"N2" : {
 				"node" : 30,
 				"Max Setting" : 120,
-				"Correction Factor" : 1,
+				"Correction Factor" : 1.001,
 				"Flow Dev Lim" : 2,
 			"Analysis Device Type" : "Flow",
 			"Major Reactant" : "False"},
 			"OzO2" : {
 				"node" : 20,
-				"Max Setting" : 30,
+				"Max Setting" : 20,
 				"Correction Factor" : 1.019,
+				"Flow Dev Lim" : 5,
+			"Analysis Device Type" : "Flow",
+			"Major Reactant" : "False"},
+			"CO2" : {
+				"node" : 10,
+				"Max Setting" : 120,
+				"Correction Factor" : 1.372,
 				"Flow Dev Lim" : 2,
 			"Analysis Device Type" : "Flow",
 			"Major Reactant" : "False"}
 			}
+		},
+	"vici_valves" : {
+		"port" : "COM4",
+		"baudrate" : 9600,
+		"timeout" : 1,
+		"Wait Time (sec)" : 5, 
+		"Subdevices" : {
+		 	"4-way" : {
+				"node" : 4,
+				"Max Setting" : 999999,
+				"Dev Lim" : 999999,
+			"Analysis Device Type" : "Valve"
+			},
+		 	"6-way" : {
+				"node" : 6,
+				"Max Setting" : 999999,
+				"Dev Lim" : 999999,
+			"Analysis Device Type" : "Valve"
+			}
 		}
+	}
 }

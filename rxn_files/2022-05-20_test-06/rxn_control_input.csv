@@ -1,9 +1,0 @@
-Control Point Name,iC4H10,O2,N2,OzO2,CO2,GC Run
-Control Point Units,mL/min,mL/min,mL/min,mL/min,mL/min,None
-Control Point Emergency Value,0,0,50,0,0,0
-Control Point Parent Device Name,bronkhorst_mfc,bronkhorst_mfc,bronkhorst_mfc,bronkhorst_mfc,bronkhorst_mfc,Inficon MicroGC
-RECPE_STARTS_BELOW,,,,,,
-30,0,0,21.34,0,0,
-30,4,9,21,0,0,
-,11,10,10,12,15,
-,0,0,20,0,0,

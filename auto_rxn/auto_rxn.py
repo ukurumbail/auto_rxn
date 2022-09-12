@@ -19,7 +19,9 @@ class Reaction():
 		self.modules = {} #a dictionary of auxiliary communication modules, organized by major device
 
 		#set up 
+		self.num_subdevs = 0
 		for subdevice_name in inputs_df.columns[1:]:
+			self.num_subdevs += 1
 			parent_device_name = inputs_df[subdevice_name][2]
 			units = inputs_df[subdevice_name][0]
 			emergency_setting = float(inputs_df[subdevice_name][1])
@@ -101,7 +103,7 @@ class Reaction():
 				if self.devices[device_name].set_sp(subdevice_name,self.setpt_matrix[subdevice_name].iloc[self.next_sp]): #device should return whether setpt took successfully or not
 					pass
 				else:
-					print("Emergency!~")
+					print("Emergency! Subdevice {} should return True if it succesfully takes its gived SP [here: {}], but subdevice returned False.".format(subdevice_name,self.setpt_matrix[subdevice_name].iloc[self.next_sp]))
 					self.set_emergency_sps()
 
 		self.setpoint_switch_time = time.time()
@@ -133,12 +135,14 @@ class Reaction():
 			print(tabulate.tabulate([self.log_values],floatfmt=".2f"))			
 	
 	def set_emergency_sps(self):
+		print("\nSetting emergency setpoints...\n")
 		for device_name in self.devices.keys():
 			for subdevice_name in self.devices[device_name].get_subdevice_names():
 				emergency_sp = self.devices[device_name].get_emergency_sp(subdevice_name)
 				self.devices[device_name].set_sp(subdevice_name,emergency_sp)
-
-		raise Error("Emergency!")
+		time.sleep(5)
+		self.log()
+		raise IOError("Emergency setpoints set due to IO Error!")
 
 	def create_gc_log(self):
 		gc_run_id = None
@@ -158,14 +162,15 @@ class Reaction():
 
 	def is_emergency(self):
 		i = 2 #skipping Time and rxn_name log values
+
 		for device_name in self.devices.keys():
 			for subdevice_name in self.devices[device_name].get_subdevice_names():
-				emergency_values = self.devices[device_name].is_emergency(subdevice_name,self.prev_log_time,self.setpoint_switch_time,self.current_sp,self.log_values[i])
+				subdev_sp = self.devices[device_name].get_sp(subdevice_name)
+				emergency_values = self.devices[device_name].is_emergency(subdevice_name,self.prev_log_time,self.setpoint_switch_time,subdev_sp,self.log_values[i+self.num_subdevs]) #need to get to PVs, not SPs by adding self.num_subdevs
 				if emergency_values[0] == True: 
 					print("{}.{} in emergency. Current SP: {} Current PV: {}".format(device_name,emergency_values[1],emergency_values[2],emergency_values[3]))
 					return True
-			i += 1
-
+				i += 1
 	def email(self):
 		rxn.set_emergency_sps()
 		print("Switched to emergency setpoints. Make sure you implement this so as to avoid in the future...")

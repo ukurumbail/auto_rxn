@@ -12,8 +12,8 @@ import postrun_analysis
 @click.option('--settings_file', default='rxn_control_config.json', help='Filename for settings file utilized by rxn control.')
 @click.option('--recipe_directory',default='input_files',help='Directory for reaction input file utilized by rxn control.')
 @click.option('--settings_directory', default='config_files', help='Directory for settings file utilized by rxn control.')
-@click.option('--storage_directory', default='rxn_files', help='Directory to store all outputs in.')
-@click.option('--rxn_name', default='2022-05-20_test-999', help='This name will be utilized to create a subdirectory for your reaction files.') #prompt='Name for reaction'
+@click.option('--storage_directory', default='../rxn_files', help='Directory to store all outputs in.')
+@click.option('--rxn_name', default='None', help='This name will be utilized to create a subdirectory for your reaction files.') #prompt='Name for reaction'
 @click.option('--run_or_analyze',default="run",help="Option is run to run a reaction or analyze to analyze an already-ran rxn")
 def main(recipe_file,settings_file,recipe_directory,settings_directory,storage_directory,rxn_name,run_or_analyze):
 	"""Console script for auto_rxn."""
@@ -26,10 +26,11 @@ def main(recipe_file,settings_file,recipe_directory,settings_directory,storage_d
 
 		settings_dirname = os.path.join(dirname, settings_directory) #turn relative path into absolute path
 
-		if os.path.isdir(rxn_dirname):
+		if os.path.isdir(rxn_dirname) and rxn_name != 'None':
 			pass
 		else:
-			raise ValueError("Reaction not found at location: {}".format(rxn_dirname))
+			pass
+			raise ValueError("Reaction not found at location: {}. Or rxn_name not entered".format(rxn_dirname))
 
 		click.echo('Found reaction. Beginning analysis.')
 		postrun_analysis.analyze(rxn_dirname,settings_dirname)
@@ -43,13 +44,13 @@ def main(recipe_file,settings_file,recipe_directory,settings_directory,storage_d
 		folder_created = False
 		while not folder_created:
 			print(dirname,storage_directory)
-			rxn_dirname = os.path.join(dirname, storage_directory)
-			rxn_dirname = os.path.join(rxn_dirname,rxn_name)
+			full_storage_dirname = os.path.join(dirname, storage_directory)
+			rxn_dirname = os.path.join(full_storage_dirname,rxn_name)
 			if os.path.isdir(rxn_dirname):
 				click.echo('Directory already exists, please enter new rxn_name. Selected directory name: {}'.format(rxn_dirname))
 				rxn_name = input("Enter new reaction name here: ")
+				rxn_dirname = os.path.join(full_storage_dirname,rxn_name)
 				pass
-				folder_created=True
 			else:
 				os.mkdir(rxn_dirname)
 				folder_created=True

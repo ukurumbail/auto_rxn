@@ -5,9 +5,8 @@ class Device():
 	def __init__(self,params,config,mock=False):
 		self.config = config
 		self.params = params
-		self.flow_wait_time = self.config["Flow Wait Time (sec)"]
-		# self.flow_dev_lim = 2
-		# self.emergency_flows = {}
+		self.wait_time = self.config["Wait Time (sec)"]
+
 		self.subdevices = {}
 
 		if mock:
@@ -24,7 +23,6 @@ class Device():
 			#initializing each controller with its specific max flow, name, etc.
 			for subdev_name in config["Subdevices"].keys():
 				self.subdevices[subdev_name] = Subdevice(subdev_name,params[subdev_name],config["Subdevices"][subdev_name])
-				self.subdevices[subdev_name].set_control_mode(self.ser) #Sets control mode to accept RS-232 setpoints
 				time.sleep(1)	
 
 	def get_pv(self,subdev_name):
@@ -37,7 +35,7 @@ class Device():
 		return self.subdevices[subdev_name].set_sp(self.ser,sp_value)
 
 	def is_emergency(self,subdev_name,pv_read_time,sp_set_time,current_sp,current_pv):
-		return self.subdevices[subdev_name].is_emergency(self.flow_wait_time,pv_read_time,sp_set_time,current_sp,current_pv)
+		return self.subdevices[subdev_name].is_emergency(self.wait_time,pv_read_time,sp_set_time,current_sp,current_pv)
 
 	def get_subdevice_names(self):
 		return self.subdevices.keys()
@@ -55,9 +53,9 @@ class Mock_Subdevice():
 		self.emergency_setting = params["Emergency Setpoint"]
 		self.node = config["node"]
 		self.current_sp = None
-		self.flow_dev_lim = config["Flow Dev Lim"]
+		self.dev_lim = config["Dev Lim"]
 
-	def is_emergency(self,flow_wait_time,pv_read_time,sp_set_time,current_sp,current_pv):
+	def is_emergency(self,wait_time,pv_read_time,sp_set_time,current_sp,current_pv):
 		return [False,self.name,current_sp,current_pv]
 	def get_pv(self,ser):
 		return self.current_sp
@@ -77,17 +75,17 @@ class Subdevice():
 ###
 	def __init__(self,name,params,config):
 		self.name = name
-		self.units = params["Units"]
 		self.max_setting = str(config["Max Setting"])
 		self.emergency_setting = float(params["Emergency Setpoint"])
-		self.node = '{:02x}'.format(int(config["node"]))
+		self.node = str(config["node"])
 		self.current_sp = None
-		self.flow_dev_lim = float(config["Flow Dev Lim"])
+		self.dev_lim = float(config["Dev Lim"])
 
-	def is_emergency(self,flow_wait_time,pv_read_time,sp_set_time,current_sp,current_pv):
-		if (pv_read_time-sp_set_time > flow_wait_time):
-			if current_pv > (current_sp+self.flow_dev_lim) or current_pv<(current_sp-self.flow_dev_lim):
-				print("Error in: {} Current PV: {} Current SP: {} Current Flow dev lim: {}".format(self.name,current_pv,current_sp,self.flow_dev_lim))
+	def is_emergency(self,wait_time,pv_read_time,sp_set_time,current_sp,current_pv):
+		print(wait_time,pv_read_time-sp_set_time,current_sp,current_pv)
+		if (pv_read_time-sp_set_time > wait_time):
+			if current_pv != current_sp:
+				print("Error in: {} Current PV: {} Current SP: {} Current Dev Lim: {}".format(self.name,current_pv,current_sp,self.dev_lim))
 				return [True,self.name,current_sp,current_pv]
 			else:
 				return [False,self.name,current_sp,current_pv]
@@ -95,49 +93,33 @@ class Subdevice():
 			return [False,self.name,current_sp,current_pv]
 
 	def get_pv(self,ser):
-		""" Read the actual flow """ #If 10 errors then returns -99
+		""" Read the actual flow """ #If 5 errors then returns whatever it received from valve
 		error = 0
-		while error < 10:
-			read_pressure = ':06' + self.node + '0401210120\r\n' # Read pressure
-			val = self.comm(ser,read_pressure)
+		while error < 5:
+			read_str = self.node+'CP'+'\r\n' #constructing read string
+			val = self.comm(ser,read_str)
 
-			try:
-				val = val[11:] #Gets last 4 hex digits
-				num = int(val, 16) #Converts to decimal
-				pressure = (float(num)/ 32000) * float(self.max_setting) #Determines actual flow
-				break
-
-			except ValueError:
-				pressure = -99
+			if "\"A\"" in val:
+				return 0
+			elif "\"B\"" in val:
+				return 1
+			else:
 				error = error + 1
-		return pressure
-
+		
+		return val #return latest communication with valve if in error 5 times
 
 	def set_sp(self,ser,setpoint_in):
-		if setpoint_in > 0:
-			setpoint = (float(setpoint_in) / float(self.max_setting)) * 32000
-			setpoint = hex(int(setpoint))
-			setpoint = setpoint.upper()
-			setpoint = setpoint[2:].rstrip('L')
-
-			if len(setpoint) == 3:
-				setpoint = '0' + setpoint
-
+		self.current_sp = setpoint_in
+		if setpoint_in == 0:
+			setpoint_in = "A"
+		elif setpoint_in == 1:
+			setpoint_in = "B"
 		else:
-			setpoint = '0000'
-		
-		set_setpoint = ':06' + self.node + '010121' + setpoint + '\r\n' # Set setpoint
-		response = self.comm(ser,set_setpoint)
-		response_check = response[5:].strip()
-		
-		if response_check == '000005':
-			response = True
-			self.current_sp = setpoint_in
-		else:
-			response = False
-			print("Failed to set SP for {}".format(self.name))
-		
-		return response
+			print("Unknown setpoint received! {}".format(setpoint_in))
+			return False
+		write_str = self.node+"GO"+setpoint_in+'\r\n'
+		response = self.comm(ser,write_str)
+		return True
 
 
 	def get_sp(self,ser):
@@ -151,18 +133,12 @@ class Subdevice():
 
 	def comm(self, ser, command):
 		""" Send commands to device and recieve reply """
-		ser.write(command.encode('ascii'))
-		time.sleep(0.1)
+		ser.write(command.encode())
+		time.sleep(0.5)
 
-		return_string = ser.read(ser.inWaiting())
+		return_string = ser.readline()
 		return_string = return_string.decode()
 		return return_string
-
-	def set_control_mode(self,ser):
-		""" Set the control mode to accept rs232 setpoint """
-		set_control = ':05' + self.node + '01010412\r\n' #Sets control mode to value 18 (rs232)
-		response = self.comm(ser,set_control)
-		return str(response)
 		
 	def get_max_setting(self):
 		return self.max_setting

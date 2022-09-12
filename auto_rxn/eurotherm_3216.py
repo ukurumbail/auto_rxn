@@ -81,7 +81,7 @@ class Subdevice():
 	def is_emergency(self,pv_read_time,sp_set_time,current_sp,current_pv):
 		if (pv_read_time-sp_set_time) > self.wait_time:
 			if self.dev_type == "Change from previous": #Use dev_lim as a minimum change required from previous sp
-				if abs(abs(self.prev_sp)-abs(current_pv)) < abs(self.dev_lim):
+				if abs(abs(self.prev_sp)-abs(current_pv)) < abs(self.dev_lim) and abs(abs(self.prev_sp)-abs(current_sp)) > abs(self.dev_lim):
 					print("{} failed to change from previous SP in enough time!".format(self.name))
 					return [True,self.name,current_sp,current_pv] 
 				else:

@@ -5,9 +5,8 @@ class Device():
 	def __init__(self,params,config,mock=False):
 		self.config = config
 		self.params = params
-		self.flow_wait_time = self.config["Flow Wait Time (sec)"]
-		# self.flow_dev_lim = 2
-		# self.emergency_flows = {}
+		self.wait_time = self.config["Wait Time (sec)"]
+
 		self.subdevices = {}
 
 		if mock:
@@ -37,7 +36,7 @@ class Device():
 		return self.subdevices[subdev_name].set_sp(self.ser,sp_value)
 
 	def is_emergency(self,subdev_name,pv_read_time,sp_set_time,current_sp,current_pv):
-		return self.subdevices[subdev_name].is_emergency(self.flow_wait_time,pv_read_time,sp_set_time,current_sp,current_pv)
+		return self.subdevices[subdev_name].is_emergency(self.wait_time,pv_read_time,sp_set_time,current_sp,current_pv)
 
 	def get_subdevice_names(self):
 		return self.subdevices.keys()
@@ -55,9 +54,9 @@ class Mock_Subdevice():
 		self.emergency_setting = params["Emergency Setpoint"]
 		self.node = config["node"]
 		self.current_sp = None
-		self.flow_dev_lim = config["Flow Dev Lim"]
+		self.dev_lim = config["Dev Lim"]
 
-	def is_emergency(self,flow_wait_time,pv_read_time,sp_set_time,current_sp,current_pv):
+	def is_emergency(self,wait_time,pv_read_time,sp_set_time,current_sp,current_pv):
 		return [False,self.name,current_sp,current_pv]
 	def get_pv(self,ser):
 		return self.current_sp
@@ -82,12 +81,12 @@ class Subdevice():
 		self.emergency_setting = float(params["Emergency Setpoint"])
 		self.node = '{:02x}'.format(int(config["node"]))
 		self.current_sp = None
-		self.flow_dev_lim = float(config["Flow Dev Lim"])
+		self.dev_lim = float(config["Dev Lim"])
 
-	def is_emergency(self,flow_wait_time,pv_read_time,sp_set_time,current_sp,current_pv):
-		if (pv_read_time-sp_set_time > flow_wait_time):
-			if current_pv > (current_sp+self.flow_dev_lim) or current_pv<(current_sp-self.flow_dev_lim):
-				print("Error in: {} Current PV: {} Current SP: {} Current Flow dev lim: {}".format(self.name,current_pv,current_sp,self.flow_dev_lim))
+	def is_emergency(self,wait_time,pv_read_time,sp_set_time,current_sp,current_pv):
+		if (pv_read_time-sp_set_time > wait_time):
+			if current_pv > (current_sp+self.dev_lim) or current_pv<(current_sp-self.dev_lim):
+				print("Error in: {} Current PV: {} Current SP: {} Current Dev Lim: {}".format(self.name,current_pv,current_sp,self.dev_lim))
 				return [True,self.name,current_sp,current_pv]
 			else:
 				return [False,self.name,current_sp,current_pv]
