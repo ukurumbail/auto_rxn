@@ -48,6 +48,32 @@
 			"Test" : {"Register" : 131, "Value" : 1,"Max Setting" : "None","Analysis Device Type" : "None"}
 			}
 		},
+	"alicat_bb9" : {
+		"port" : "COM4",
+		"baudrate" : 19200,
+		"Wait Time (sec)" : 10,
+		"Subdevices" : {
+		 	"4" : {
+				"node" : "B",
+				"Max Setting" : 20,
+				"Correction Factor" : 1,
+				"Dev Lim" : 2,
+			"Analysis Device Type" : "Flow",
+			"Major Reactant" : "False"},
+			"2" : {
+				"node" : "F",
+				"Max Setting" : 20,
+				"Correction Factor" : 1,
+				"Dev Lim" : 2,
+			"Analysis Device Type" : "Flow",
+			"Major Reactant" : "False"},
+			"3" : {
+				"node" : "G",
+				"Max Setting" : 20,
+				"Correction Factor" : 1,
+				"Dev Lim" : 2,
+			"Analysis Device Type" : "Flow",
+			"Major Reactant" : "False"}}},
 	"bronkhorst_mfc" : {
 		"port" : "COM3",
 		"baudrate" : 38400,

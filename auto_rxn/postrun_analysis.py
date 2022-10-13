@@ -7,6 +7,7 @@ import shutil
 import requests
 import csv
 from openpyxl import load_workbook
+import datetime
 
 def get_run_data(run_id,ip):
 	if ip is None: #mock!
@@ -19,7 +20,7 @@ def get_run_data(run_id,ip):
 
 
 
-def analyze(rxn_dirname,settings_dirname):
+def analyze(rxn_dirname,settings_dirname,just_dump=False):
 	#takes in the directory for a reaction and produces an analysis
 
 	rxn_name = rxn_dirname.split('\\')[-1]
@@ -138,10 +139,14 @@ def analyze(rxn_dirname,settings_dirname):
 		df[species+" RT"] = gc_rts[species]
 
 
-
-	df_for_data_dump["GC Time Stamp Formatted"] = df_for_data_dump["GC Time Stamp"].apply(time.ctime)
+	print("Dumping GC Data...") 
+	formatted_time = df_for_data_dump["GC Time Stamp"].apply(lambda x: datetime.datetime.strptime(time.ctime(x), "%c"))
+	df_for_data_dump.insert(df.columns.get_loc('Type'), 'Timestamp (Formatted)', formatted_time)
 	df_for_data_dump.sort_values(by=["GC Time Stamp"])
 	df_for_data_dump.to_excel(rxn_dirname+"\\"+rxn_name+" gc data.xlsx")
+	print("Dumped successfully.")
+	if just_dump: #end function here if we're just dumping
+		return True
 
 
 

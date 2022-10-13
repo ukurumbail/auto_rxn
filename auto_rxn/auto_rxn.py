@@ -103,7 +103,7 @@ class Reaction():
 				if self.devices[device_name].set_sp(subdevice_name,self.setpt_matrix[subdevice_name].iloc[self.next_sp]): #device should return whether setpt took successfully or not
 					pass
 				else:
-					print("Emergency! Subdevice {} should return True if it succesfully takes its gived SP [here: {}], but subdevice returned False.".format(subdevice_name,self.setpt_matrix[subdevice_name].iloc[self.next_sp]))
+					print("Emergency! Subdevice {} should return True if it succesfully takes its given SP [here: {}], but subdevice returned False.".format(subdevice_name,self.setpt_matrix[subdevice_name].iloc[self.next_sp]))
 					self.set_emergency_sps()
 
 		self.setpoint_switch_time = time.time()
@@ -139,7 +139,7 @@ class Reaction():
 		for device_name in self.devices.keys():
 			for subdevice_name in self.devices[device_name].get_subdevice_names():
 				emergency_sp = self.devices[device_name].get_emergency_sp(subdevice_name)
-				self.devices[device_name].set_sp(subdevice_name,emergency_sp)
+				print(self.devices[device_name].set_sp(subdevice_name,emergency_sp))
 		time.sleep(5)
 		self.log()
 		raise IOError("Emergency setpoints set due to IO Error!")
