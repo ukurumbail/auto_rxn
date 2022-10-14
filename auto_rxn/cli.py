@@ -18,7 +18,7 @@ from optparse import OptionParser
 @click.option('--run_or_analyze',default="run",help="Option is 'run' to run a reaction or 'analyze' to analyze an already-ran rxn or 'just_dump' to just get all the formatted gc data.")
 def main(recipe_file,settings_file,recipe_directory,settings_directory,storage_directory,rxn_name,run_or_analyze):
 	"""Console script for auto_rxn."""
-	if run_or_analyze == "analyze":
+	if run_or_analyze == "analyze" or run_or_analyze == "just_dump":
 		dirname = pathlib.Path.cwd()
 
 		rxn_dirname = os.path.join(dirname, storage_directory)
@@ -33,7 +33,7 @@ def main(recipe_file,settings_file,recipe_directory,settings_directory,storage_d
 			raise ValueError("Reaction not found at location: {}. Or rxn_name not entered".format(rxn_dirname))
 
 		click.echo('Found reaction. Beginning analysis.')
-		if run_or_analyze == "just dump":
+		if run_or_analyze == "just_dump":
 			postrun_analysis.analyze(rxn_dirname,settings_dirname,just_dump=True)
 		else:
 			postrun_analysis.analyze(rxn_dirname,settings_dirname,just_dump=False)
