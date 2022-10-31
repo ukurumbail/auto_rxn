@@ -10,6 +10,12 @@ class Device():
 		self.params = params
 		self.subdevices = {}
 
+		if "Delay Time" in params.keys():
+			self.delay_exists=True 
+			self.last_injection_time = 0
+		else:
+			self.delay_exists=False
+
 		if self.mock:
 			for subdev_name in params.keys(): #for each subdevice in input file
 				self.subdevices[subdev_name] = Mock_Subdevice(subdev_name,params[subdev_name],config["Subdevices"][subdev_name])
@@ -43,10 +49,48 @@ class Device():
 
 	def ready(self):
 		if self.mock:
-			return True
+			if self.delay_exists:
+				if time.time() > ((self.get_sp("Delay Time")*60) + self.last_injection_time):
+					if round((self.get_sp("Delay Time")) - (self.get_sp("Delay Time"))%1) == 1:
+						if round((self.get_sp("Delay Time"))%1*60) == 1:
+							print("Injection delayed. Time until next injection:", round((self.get_sp("Delay Time")) - (self.get_sp("Delay Time"))%1), "minute,", round((self.get_sp("Delay Time"))%1*60), "second.")
+							return True
+						else:
+							print("Injection delayed. Time until next injection:", round((self.get_sp("Delay Time")) - (self.get_sp("Delay Time"))%1), "minute,", round((self.get_sp("Delay Time"))%1*60), "seconds.")
+							return True
+					if round((self.get_sp("Delay Time"))%1*60) ==1:
+						print("Injection delayed. Time until next injection:", round((self.get_sp("Delay Time")) - (self.get_sp("Delay Time"))%1), "minutes,", round((self.get_sp("Delay Time"))%1*60), "second.")
+						return True
+					else:
+						print("Injection delayed. Time until next injection:", round((self.get_sp("Delay Time")) - (self.get_sp("Delay Time"))%1), "minutes,", round((self.get_sp("Delay Time"))%1*60), "seconds.")
+						return True
+					return True
+				else:
+					return False
+			else:
+				return True
 		else:
 			if 'public:ready' in self.get_state():
-				return True 
+				if self.delay_exists:
+					if time.time() > (self.get_sp("Delay Time")*60 + self.last_injection_time):
+						if round((self.get_sp("Delay Time")) - (self.get_sp("Delay Time"))%1) == 1:
+							if round((self.get_sp("Delay Time"))%1*60) == 1:
+								print("Injection delayed. Time until next injection:", round((self.get_sp("Delay Time")) - (self.get_sp("Delay Time"))%1), "minute,", round((self.get_sp("Delay Time"))%1*60), "second.")
+								return True
+							else:
+								print("Injection delayed. Time until next injection:", round((self.get_sp("Delay Time")) - (self.get_sp("Delay Time"))%1), "minute,", round((self.get_sp("Delay Time"))%1*60), "seconds.")
+								return True
+						if round((self.get_sp("Delay Time"))%1*60) ==1:
+							print("Injection delayed. Time until next injection:", round((self.get_sp("Delay Time")) - (self.get_sp("Delay Time"))%1), "minutes,", round((self.get_sp("Delay Time"))%1*60), "second.")
+							return True
+						else:
+							print("Injection delayed. Time until next injection:", round((self.get_sp("Delay Time")) - (self.get_sp("Delay Time"))%1), "minutes,", round((self.get_sp("Delay Time"))%1*60), "seconds.")
+							return True
+						return True
+					else:
+						return False
+				else:
+					return True 
 			else:
 				return False
 
@@ -64,14 +108,17 @@ class Device():
 	def inject(self):
 		if self.mock:
 			self.subdevices["Number of Samples"].num_injections += 1
+			self.last_injection_time = time.time()
 			return True
 		else:
 			get_request = requests.get('http://' + self.ip + '/v1/scm/sessions/system-manager!cmd.run')
 			if get_request.status_code == 200:
 				self.subdevices["Number of Samples"].num_injections += 1 
+				self.last_injection_time = time.time()
 				return True		
 			else: #Status code of 500 returned if injection unsuccessful
 				return False
+
 
 	def get_pv(self,subdev_name):
 		return self.subdevices[subdev_name].get_pv()
@@ -127,6 +174,12 @@ class Mock_Subdevice():
 
 	def get_sp(self):
 		return self.current_sp
+
+	def delay_time(self):
+		if self.is_injection_counter == self.num_injections:
+			time.sleep(delay_time)
+		return True
+
 
 class Subdevice():
 	def __init__(self,name,params,config):

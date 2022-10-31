@@ -1,8 +1,8 @@
 {	
 	"main" : {
 		"GC Module Name" : "inficon_gc",
-		"Subdevices": {}
-	},
+		"Subdevices": {},
+		"mock" : "true"},
 	"logger" : {
 		"log_interval (s)" : 5,
 		"Subdevices" :{}
@@ -14,7 +14,8 @@
 		"Type" : "GC",
 		"Subdevices" :{
 			"Number of Samples" : {"Max Setting" : "None","Analysis Device Type" : "None"},
-			"Method Name" : {"Max Setting" : "None","Analysis Device Type" : "None"}
+			"Method Name" : {"Max Setting" : "None","Analysis Device Type" : "None"},
+			"Delay Time" : {"Max Setting" : "None","Analysis Device Type" : "None"}
 			}
 		},
 

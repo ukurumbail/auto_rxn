@@ -40,7 +40,7 @@ class Reaction():
 		for device_name in self.device_parameters.keys():										
 			self.modules[device_name] = importlib.import_module(device_name)	
 			self.device_config[device_name] = settings_json[device_name]
-			self.devices[device_name] = self.modules[device_name].Device(self.device_parameters[device_name],self.device_config[device_name])
+			self.devices[device_name] = self.modules[device_name].Device(self.device_parameters[device_name],self.device_config[device_name],mock = bool(settings_json["main"]["mock"]))
 
 		#set up logging file
 		self.log_interval = float(settings_json["logger"]["log_interval (s)"]) #in seconds
@@ -188,7 +188,6 @@ def run_rxn(inputs_df,settings_json,rxn_name,rxn_dirname):
 	rxn.set_setpts()
 	print("Setpoints switched.\n")
 
-	log_counter = 0
 	reaction_finished = False
 	while not reaction_finished:
 		#Switch setpoints if time has elapsed
@@ -205,7 +204,6 @@ def run_rxn(inputs_df,settings_json,rxn_name,rxn_dirname):
 			time.sleep(5)
 		if time.time() >= (rxn.prev_log_time+rxn.log_interval):
 			rxn.log()
-			log_counter += 1
 			if rxn.is_emergency():
 				rxn.set_emergency_sps()
 				raise NotImplementedError("Emergency! program shutting down. TBD- create a specific Exception class.")
