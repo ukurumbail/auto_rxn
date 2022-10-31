@@ -93,7 +93,7 @@ def main(recipe_file,settings_file,recipe_directory,settings_directory,storage_d
 		if yes_or_no == "yes" or yes_or_no == "Yes" or yes_or_no == "y" or yes_or_no == "Y" or yes_or_no == "correct":
 			response = True
 		else: 
-			print("Terminating program")
+			print("Aborting")
 			exit()
 
 
@@ -103,12 +103,19 @@ def main(recipe_file,settings_file,recipe_directory,settings_directory,storage_d
 	shutil.copy2(settings_file_full,rxn_dirname)
 
 
-	# #load config/settings and recipe (params / setpoints)
-	# with open(settings_file_full, 'r') as f:
-	# 	settings_json = json.load(f)
-	# inputs_df = pd.read_csv(recipe_file_full)
+	#load config/settings and recipe (params / setpoints)
+	with open(settings_file_full, 'r') as f:
+		settings_json = json.load(f)
+		inputs_df = pd.read_csv(recipe_file_full)
 
-	print(inputs_df)
+	#Make sure that the user knows whether the reaction is a mock
+	if bool(settings_json["main"]["mock"]) == True:
+		proceed_or_quit = input("This is a mock reaction. Are you sure you want to proceed? ")
+		if proceed_or_quit == "yes" or proceed_or_quit == "Yes" or proceed_or_quit == "y" or proceed_or_quit == "Y" or proceed_or_quit == "true" or proceed_or_quit == "proceed" or proceed_or_quit == "Proceed":
+			pass
+		else:
+			print("Aborting")
+			quit()
 
 	#initialize and begin reaction
 	auto_rxn.run_rxn(inputs_df,settings_json,rxn_name,rxn_dirname)
