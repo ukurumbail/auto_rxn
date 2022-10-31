@@ -44,7 +44,7 @@ def main(recipe_file,settings_file,recipe_directory,settings_directory,storage_d
 		#create new rxn folder
 		if rxn_name is None:
 			rxn_name = input("Enter name for reaction subdirectory: ")
-			rxn_dirname = rxn_name
+			rxn_dirname = os.path.join(full_storage_dirname,rxn_name)
 			if os.path.isdir(rxn_dirname):
 				valid_dirname = False
 				while not valid_dirname:
@@ -73,45 +73,45 @@ def main(recipe_file,settings_file,recipe_directory,settings_directory,storage_d
 
 		click.echo('Subdirectory successfully created.')
 
-	if recipe_file is None :
-			raise ValueError("Must include a recipe file name")
+		if recipe_file is None :
+				raise ValueError("Must include a recipe file name")
 
 
-	dirname = pathlib.Path.cwd()
-	recipe_dirname = os.path.join(dirname, recipe_directory) #turn relative path into absolute path
-	recipe_file_full = os.path.join(recipe_dirname, recipe_file) #turn relative path into absolute path
-	shutil.copy2(recipe_file_full,rxn_dirname)
+		dirname = pathlib.Path.cwd()
+		recipe_dirname = os.path.join(dirname, recipe_directory) #turn relative path into absolute path
+		recipe_file_full = os.path.join(recipe_dirname, recipe_file) #turn relative path into absolute path
+		shutil.copy2(recipe_file_full,rxn_dirname)
 
-	#print the recipe file
-	df = pd.read_csv(recipe_file_full)
-	print(df.to_string())
+		#print the recipe file
+		df = pd.read_csv(recipe_file_full)
+		print(df.to_string())
 
-	click.echo('Here is the data from the input file. Is this correct?')
-	response = False
-	while not response:
-		yes_or_no = input("Yes or no: ")
-		if yes_or_no == "yes" or yes_or_no == "Yes" or yes_or_no == "y" or yes_or_no == "Y" or yes_or_no == "correct":
-			response = True
-		else: 
-			print("Terminating program")
-			exit()
-
-
-	#copy settings and recipe files over to new directory
-	settings_dirname = os.path.join(dirname, settings_directory) #turn relative path into absolute path
-	settings_file_full = os.path.join(settings_dirname, settings_file) #turn relative path into absolute path
-	shutil.copy2(settings_file_full,rxn_dirname)
+		click.echo('Here is the data from the input file. Is this correct?')
+		response = False
+		while not response:
+			yes_or_no = input("Yes or no: ")
+			if yes_or_no == "yes" or yes_or_no == "Yes" or yes_or_no == "y" or yes_or_no == "Y" or yes_or_no == "correct":
+				response = True
+			else: 
+				print("Terminating program")
+				exit()
 
 
-	# #load config/settings and recipe (params / setpoints)
-	# with open(settings_file_full, 'r') as f:
-	# 	settings_json = json.load(f)
-	# inputs_df = pd.read_csv(recipe_file_full)
+		#copy settings and recipe files over to new directory
+		settings_dirname = os.path.join(dirname, settings_directory) #turn relative path into absolute path
+		settings_file_full = os.path.join(settings_dirname, settings_file) #turn relative path into absolute path
+		shutil.copy2(settings_file_full,rxn_dirname)
 
-	print(inputs_df)
 
-	#initialize and begin reaction
-	auto_rxn.run_rxn(inputs_df,settings_json,rxn_name,rxn_dirname)
+		#load config/settings and recipe (params / setpoints)
+		with open(settings_file_full, 'r') as f:
+			settings_json = json.load(f)
+		inputs_df = pd.read_csv(recipe_file_full)
+
+		print(inputs_df)
+
+		#initialize and begin reaction
+		auto_rxn.run_rxn(inputs_df,settings_json,rxn_name,rxn_dirname)
 
 if __name__ == "__main__":
 	main()
