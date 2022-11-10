@@ -8,7 +8,7 @@ import csv
 import os
 
 class Reaction():
-	def __init__(self,inputs_df,settings_json,rxn_name, rxn_dirname):
+	def __init__(self,inputs_df,settings_json,rxn_name, rxn_dirname,mock):
 		self.rxn_name = rxn_name
 		self.rxn_dirname = rxn_dirname
 
@@ -17,7 +17,7 @@ class Reaction():
 		self.device_parameters = {} #Keep in mind parameters vs. config. Parameters = The parameters in the recipe specific to each subdevice/control point (emergency setpt, units, parent device name)
 		self.device_config = {} #config = the metadata stored in the settings json that is used to connect to the actual device, etc.
 		self.modules = {} #a dictionary of auxiliary communication modules, organized by major device
-
+		self.dynamic_subdevices = {} #a list of subdevice names for devices classified as dynamic (setpt changes during a step)
 		#set up 
 		self.num_subdevs = 0
 		for subdevice_name in inputs_df.columns[1:]:
@@ -25,6 +25,12 @@ class Reaction():
 			parent_device_name = inputs_df[subdevice_name][2]
 			units = inputs_df[subdevice_name][0]
 			emergency_setting = float(inputs_df[subdevice_name][1])
+			if settings_json[parent_device_name]["Subdevices"][subdevice_name]["Dynamicity"] == "Static":
+				pass
+			elif settings_json[parent_device_name]["Subdevices"][subdevice_name]["Dynamicity"] == "Dynamic":
+				self.dynamic_subdevices.append(subdevice_name)
+			else:
+				raise ValueError ("Dynamicity must be Dynamic or Static for {}".format(subdevice_name))
 
 			if parent_device_name not in self.device_parameters.keys():
 				self.device_parameters[parent_device_name] = {subdevice_name: {"Units" : units,
@@ -40,7 +46,7 @@ class Reaction():
 		for device_name in self.device_parameters.keys():										
 			self.modules[device_name] = importlib.import_module(device_name)	
 			self.device_config[device_name] = settings_json[device_name]
-			self.devices[device_name] = self.modules[device_name].Device(self.device_parameters[device_name],self.device_config[device_name],mock = bool(settings_json["main"]["mock"]))
+			self.devices[device_name] = self.modules[device_name].Device(self.device_parameters[device_name],self.device_config[device_name],mock = mock)
 
 		#set up logging file
 		self.log_interval = float(settings_json["logger"]["log_interval (s)"]) #in seconds
@@ -98,6 +104,20 @@ class Reaction():
 
 	def set_setpts(self):
 
+def set_setpts(self,only_dynamic=False):
+
+
+
+	if only_dynamic: #only changing subdevices that are dynamic controlled, i.e. we're in the middle of a rxn recipe step
+		for device_name in self.devices.keys():
+			for subdevice_name in self.devices[device_name].get_subdevice_names():
+				if subdevice_name in self.dynamic_subdevices:
+					if self.devices[device_name].update_sp(subdevice_name):							
+						pass
+					else:
+						print("Emergency! Subdevice {} should return True if it succesfully takes its given SP [here: {}], but subdevice returned False.".format(subdevice_name,self.setpt_matrix[subdevice_name].iloc[self.next_sp]))
+						self.set_emergency_sps()
+	else:
 		for device_name in self.devices.keys():
 			for subdevice_name in self.devices[device_name].get_subdevice_names():
 				if self.devices[device_name].set_sp(subdevice_name,self.setpt_matrix[subdevice_name].iloc[self.next_sp]): #device should return whether setpt took successfully or not
@@ -105,7 +125,6 @@ class Reaction():
 				else:
 					print("Emergency! Subdevice {} should return True if it succesfully takes its given SP [here: {}], but subdevice returned False.".format(subdevice_name,self.setpt_matrix[subdevice_name].iloc[self.next_sp]))
 					self.set_emergency_sps()
-
 		self.setpoint_switch_time = time.time()
 		self.current_sp += 1
 		self.next_sp += 1	
@@ -176,9 +195,9 @@ class Reaction():
 		print("Switched to emergency setpoints. Make sure you implement this so as to avoid in the future...")
 		raise NotImplementedError()
 
-def run_rxn(inputs_df,settings_json,rxn_name,rxn_dirname):
+def run_rxn(inputs_df,settings_json,rxn_name,rxn_dirname,mock):
 	print("\nInitializing devices...")
-	rxn = Reaction(inputs_df,settings_json,rxn_name,rxn_dirname)
+	rxn = Reaction(inputs_df,settings_json,rxn_name,rxn_dirname,mock)
 	
 	print("Starting reaction.")
 
@@ -202,6 +221,8 @@ def run_rxn(inputs_df,settings_json,rxn_name,rxn_dirname):
 					rxn.set_setpts()
 					print("Setpoints switched.\n")
 			time.sleep(5)
+		else:
+			rxn.set_setpts(only_dynamic=True) #update SP for all dynamic subdevices
 		if time.time() >= (rxn.prev_log_time+rxn.log_interval):
 			rxn.log()
 			if rxn.is_emergency():

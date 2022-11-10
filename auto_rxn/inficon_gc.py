@@ -51,21 +51,9 @@ class Device():
 		if self.mock:
 			if self.delay_exists:
 				if time.time() > ((self.get_sp("Delay Time")*60) + self.last_injection_time):
-					if round((self.get_sp("Delay Time")) - (self.get_sp("Delay Time"))%1) == 1:
-						if round((self.get_sp("Delay Time"))%1*60) == 1:
-							print("Injection delayed. Time until next injection:", round((self.get_sp("Delay Time")) - (self.get_sp("Delay Time"))%1), "minute,", round((self.get_sp("Delay Time"))%1*60), "second.")
-							return True
-						else:
-							print("Injection delayed. Time until next injection:", round((self.get_sp("Delay Time")) - (self.get_sp("Delay Time"))%1), "minute,", round((self.get_sp("Delay Time"))%1*60), "seconds.")
-							return True
-					if round((self.get_sp("Delay Time"))%1*60) ==1:
-						print("Injection delayed. Time until next injection:", round((self.get_sp("Delay Time")) - (self.get_sp("Delay Time"))%1), "minutes,", round((self.get_sp("Delay Time"))%1*60), "second.")
-						return True
-					else:
-						print("Injection delayed. Time until next injection:", round((self.get_sp("Delay Time")) - (self.get_sp("Delay Time"))%1), "minutes,", round((self.get_sp("Delay Time"))%1*60), "seconds.")
-						return True
 					return True
 				else:
+					print("Injection delayed. Time until next injection:", round(((self.last_injection_time + self.get_sp("Delay Time")*60 - time.time()) - (self.last_injection_time + self.get_sp("Delay Time")*60 - time.time())%60)/60) , "minutes", round((self.last_injection_time + self.get_sp("Delay Time")*60 - time.time())%60), "seconds")
 					return False
 			else:
 				return True
@@ -73,21 +61,9 @@ class Device():
 			if 'public:ready' in self.get_state():
 				if self.delay_exists:
 					if time.time() > (self.get_sp("Delay Time")*60 + self.last_injection_time):
-						if round((self.get_sp("Delay Time")) - (self.get_sp("Delay Time"))%1) == 1:
-							if round((self.get_sp("Delay Time"))%1*60) == 1:
-								print("Injection delayed. Time until next injection:", round((self.get_sp("Delay Time")) - (self.get_sp("Delay Time"))%1), "minute,", round((self.get_sp("Delay Time"))%1*60), "second.")
-								return True
-							else:
-								print("Injection delayed. Time until next injection:", round((self.get_sp("Delay Time")) - (self.get_sp("Delay Time"))%1), "minute,", round((self.get_sp("Delay Time"))%1*60), "seconds.")
-								return True
-						if round((self.get_sp("Delay Time"))%1*60) ==1:
-							print("Injection delayed. Time until next injection:", round((self.get_sp("Delay Time")) - (self.get_sp("Delay Time"))%1), "minutes,", round((self.get_sp("Delay Time"))%1*60), "second.")
-							return True
-						else:
-							print("Injection delayed. Time until next injection:", round((self.get_sp("Delay Time")) - (self.get_sp("Delay Time"))%1), "minutes,", round((self.get_sp("Delay Time"))%1*60), "seconds.")
-							return True
 						return True
 					else:
+						print("Injection delayed. Time until next injection:", round(((self.last_injection_time + self.get_sp("Delay Time")*60 - time.time()) - (self.last_injection_time + self.get_sp("Delay Time")*60 - time.time())%60)/60) , "minutes", round((self.last_injection_time + self.get_sp("Delay Time")*60 - time.time())%60), "seconds")
 						return False
 				else:
 					return True 

@@ -69,9 +69,6 @@ def main(recipe_file,settings_file,recipe_directory,settings_directory,storage_d
 					else:
 						valid_dirname = True
 
-		os.mkdir(rxn_dirname)
-
-		click.echo('Subdirectory successfully created.')
 
 		if recipe_file is None :
 				raise ValueError("Must include a recipe file name")
@@ -80,7 +77,7 @@ def main(recipe_file,settings_file,recipe_directory,settings_directory,storage_d
 		dirname = pathlib.Path.cwd()
 		recipe_dirname = os.path.join(dirname, recipe_directory) #turn relative path into absolute path
 		recipe_file_full = os.path.join(recipe_dirname, recipe_file) #turn relative path into absolute path
-		shutil.copy2(recipe_file_full,rxn_dirname)
+
 
 		#print the recipe file
 		df = pd.read_csv(recipe_file_full)
@@ -100,7 +97,7 @@ def main(recipe_file,settings_file,recipe_directory,settings_directory,storage_d
 		#copy settings and recipe files over to new directory
 		settings_dirname = os.path.join(dirname, settings_directory) #turn relative path into absolute path
 		settings_file_full = os.path.join(settings_dirname, settings_file) #turn relative path into absolute path
-		shutil.copy2(settings_file_full,rxn_dirname)
+
 
 
 
@@ -111,16 +108,36 @@ def main(recipe_file,settings_file,recipe_directory,settings_directory,storage_d
 
 
 		#Make sure that the user knows whether the reaction is a mock
-		if bool(settings_json["main"]["mock"]) == True:
+		true_values = ["True","true","T"]
+		false_values = ["False","false","F"]
+		yes_values = ["yes","Yes","y","Y",]
+		if settings_json["main"]["mock"] in true_values:
 			proceed_or_quit = input("This is a mock reaction. Are you sure you want to proceed? ")
-			if proceed_or_quit == "yes" or proceed_or_quit == "Yes" or proceed_or_quit == "y" or proceed_or_quit == "Y" or proceed_or_quit == "true" or proceed_or_quit == "proceed" or proceed_or_quit == "Proceed":
+			if proceed_or_quit in yes_values:
+				mock=True
 				pass
 			else:
 				print("Aborting")
 				quit()
 
+		elif settings_json["main"]["mock"] in false_values:
+			mock = False
+			pass
+
+		else:
+			print("Aborting program! Mock parameter in config file must be a value in {} or {}".format(true_values,false_values))
+			quit()
+
 		#initialize and begin reaction
-		auto_rxn.run_rxn(inputs_df,settings_json,rxn_name,rxn_dirname)
+
+
+		os.mkdir(rxn_dirname)
+		shutil.copy2(settings_file_full,rxn_dirname)
+		shutil.copy2(recipe_file_full,rxn_dirname)
+		click.echo('Subdirectory successfully created and populated.')
+
+
+		auto_rxn.run_rxn(inputs_df,settings_json,rxn_name,rxn_dirname,mock)
 
 if __name__ == "__main__":
 	main()
