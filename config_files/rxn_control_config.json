@@ -2,7 +2,7 @@
 	"main" : {
 		"GC Module Name" : "inficon_gc",
 		"Subdevices": {},
-		"mock" : "false"},
+		"mock" : "true"},
 	"logger" : {
 		"log_interval (s)" : 5,
 		"Subdevices" :{}
@@ -88,6 +88,13 @@
 				"Flow Dev Lim" : 2,
 			"Analysis Device Type" : "Flow",
 			"Major Reactant" : "True","Dynamicity":"Static"},
+			"H2" : {
+				"node" : 50,
+				"Max Setting" : 60,
+				"Correction Factor" : 0.7627,
+				"Flow Dev Lim" : 2,
+			"Analysis Device Type" : "Flow",
+			"Major Reactant" : "True","Dynamicity":"Static"},
 			"O2" : {
 				"node" : 40,
 				"Max Setting" : 60,
@@ -103,6 +110,13 @@
 			"Analysis Device Type" : "Flow",
 			"Major Reactant" : "False","Dynamicity":"Static"},
 			"OzO2" : {
+				"node" : 20,
+				"Max Setting" : 20,
+				"Correction Factor" : 1.019,
+				"Flow Dev Lim" : 5,
+			"Analysis Device Type" : "Flow",
+			"Major Reactant" : "False","Dynamicity":"Static"},
+			"CO2" : {
 				"node" : 20,
 				"Max Setting" : 20,
 				"Correction Factor" : 1.019,

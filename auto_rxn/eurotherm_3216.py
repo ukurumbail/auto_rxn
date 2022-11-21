@@ -23,7 +23,9 @@ class Device():
 
 		if "Furnace Temp" in params.keys():
 			self.furnace_temp_exists=True
-			self.current_max_temp_setpt = self.get_sp("Furnace_Temp")
+			self.current_max_temp_setpt = self.get_sp("Furnace Temp")
+			self.current_sp = self.get_sp("Furnace Temp")
+
 		else:
 			self.furnace_temp_exists=False
 			raise NotImplementedError("Error! Trying to run furnace without Furnace Temp. Have not implemented this.")
@@ -40,11 +42,12 @@ class Device():
 		return self.subdevices[subdev_name].get_sp(self.dev)
 
 	def set_sp(self,subdev_name,sp_value):
-		if self.ramp_rate_exists and subdev_name is "Furnace Temp":
+		if self.ramp_rate_exists and subdev_name=="Furnace Temp":
 			self.prev_max_setpt = self.current_max_temp_setpt
 			self.current_max_temp_setpt = sp_value
 			return True
-		return self.subdevices[subdev_name].set_sp(self.dev,sp_value)
+		else:
+			return self.subdevices[subdev_name].set_sp(self.dev,sp_value)
 
 	def is_emergency(self,subdev_name,pv_read_time,sp_set_time,current_sp,current_pv):
 		return self.subdevices[subdev_name].is_emergency(pv_read_time,sp_set_time,current_sp,current_pv)
@@ -59,29 +62,39 @@ class Device():
 		return self.subdevices[subdev_name].get_max_setting()
 
 	def update_sp(self,subdev_name):
-		if subdev_name is "Furnace Temp":
+		if subdev_name=="Furnace Temp":
 			if self.ramp_rate_exists:
-				if self.last_sp_time is None:
+				if self.last_sp_time==None:
 					self.last_sp_time = time.time()
-				new_sp = self.subdevices["Furnace Temp"].current_sp + (self.get_sp("Ramp Rate") * (time.time() - self.last_sp_time)/60)	
-				if self.current_max_temp_setpt > self.prev_max_setpt:
-					new_sp = min(new_sp,self.current_max_temp_setpt) #want minimum of the two if increasing temp
-
+				if self.current_max_temp_setpt >= self.prev_max_setpt:
+					if self.prev_max_setpt <= self.current_max_temp_setpt:
+						new_sp = self.subdevices["Furnace Temp"].current_sp + (self.get_sp("Ramp Rate") * (time.time() - self.last_sp_time)/60)
+						self.last_sp_time = time.time()
+						new_sp = min(new_sp, self.current_max_temp_setpt) #want minimum of the two if increasing temp
 				elif self.current_max_temp_setpt < self.prev_max_setpt:
-					new_sp = max(new_sp,self.current_max_temp_setpt)
+					new_sp = self.subdevices["Furnace Temp"].current_sp - (self.get_sp("Ramp Rate") * (time.time() - self.last_sp_time)/60)
+					self.last_sp_time = time.time()
+					if new_sp >= self.current_max_temp_setpt:
+						new_sp = max(new_sp, self.current_max_temp_setpt) #want maximum of the two if decreasing temp
+					else:
+						new_sp = self.current_max_temp_setpt
 
 				else: #no change in temp setpt
+					print("Temperature was the same.")
+					final_temp_reached = yes
 					return True
 				if new_sp != self.subdevices["Furnace Temp"].current_sp:
-					self.set_sp("Furnace Temp",new_sp)
+					print("New setpoint:", new_sp)
+					return self.subdevices[subdev_name].set_sp(self.dev,new_sp)
 				else:
 					return True
 			else:
 				return True #No need to update setpoint if there's no ramp rate
 
 
-			return True
 		else:
+			print("Got to else",list(subdev_name))
+			print(subdev_name=="Furnace Temp")
 			print("Trying to update setpoint for {} which is not listed as dynamic!!".format(subdev_name))
 			return False
 
@@ -91,7 +104,7 @@ class Mock_Subdevice():
 		self.name = name
 		self.units = params["Units"]
 		self.emergency_setting = params["Emergency Setpoint"]
-		self.current_sp = None
+		self.current_sp = 25
 		self.max_setting = config["Max Setting"]
 
 	def is_emergency(self,pv_read_time,sp_set_time,current_sp,current_pv):
@@ -150,7 +163,7 @@ class Subdevice():
 		sp_value = float(sp_value)
 
 		if sp_value	< self.max_setting:
-			if self.name is "Furnace Temp":
+			if self.name=="Furnace Temp":
 				dev.write_float(self.sp_write_address,sp_value)
 				time.sleep(.5)
 				dev_sp = self.get_sp(dev)
@@ -162,7 +175,7 @@ class Subdevice():
 					self.last_sp_time = time.time()
 					self.current_sp = sp_value
 					return True
-			elif self.name is "Ramp Rate" : 
+			elif self.name=="Ramp Rate" : 
 				self.current_sp = sp_value
 				return True
 			else:
@@ -174,9 +187,9 @@ class Subdevice():
 
 
 	def get_sp(self,dev):
-		if self.name is "Furnace Temp":
+		if self.name=="Furnace Temp":
 			return dev.read_float(self.sp_read_address)
-		elif self.name is "Ramp Rate" : 
+		elif self.name=="Ramp Rate" : 
 			return self.current_sp
 		else:
 			print("Trying to get SP for {} which is not implemented yet!".format(self.name))
