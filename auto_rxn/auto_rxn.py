@@ -17,7 +17,7 @@ class Reaction():
 		self.device_parameters = {} #Keep in mind parameters vs. config. Parameters = The parameters in the recipe specific to each subdevice/control point (emergency setpt, units, parent device name)
 		self.device_config = {} #config = the metadata stored in the settings json that is used to connect to the actual device, etc.
 		self.modules = {} #a dictionary of auxiliary communication modules, organized by major device
-		self.dynamic_subdevices = {} #a list of subdevice names for devices classified as dynamic (setpt changes during a step)
+		self.dynamic_subdevices = [] #a list of subdevice names for devices classified as dynamic (setpt changes during a step)
 		#set up 
 		self.num_subdevs = 0
 		for subdevice_name in inputs_df.columns[1:]:
@@ -102,32 +102,32 @@ class Reaction():
 		self.next_sp = 0
 		self.prev_log_time = 0
 
-	def set_setpts(self):
 
-def set_setpts(self,only_dynamic=False):
-
+	def set_setpts(self,only_dynamic=False):
 
 
-	if only_dynamic: #only changing subdevices that are dynamic controlled, i.e. we're in the middle of a rxn recipe step
-		for device_name in self.devices.keys():
-			for subdevice_name in self.devices[device_name].get_subdevice_names():
-				if subdevice_name in self.dynamic_subdevices:
-					if self.devices[device_name].update_sp(subdevice_name):							
+
+		if only_dynamic: #only changing subdevices that are dynamic controlled, i.e. we're in the middle of a rxn recipe step
+			for device_name in self.devices.keys():
+				for subdevice_name in self.devices[device_name].get_subdevice_names():
+					if subdevice_name in self.dynamic_subdevices:
+						if self.devices[device_name].update_sp(subdevice_name):							
+							pass
+						else:
+							self.set_emergency_sps()
+							print("Emergency! Subdevice {} should return True if it succesfully takes its given SP [here: {}], but subdevice returned False.".format(subdevice_name,self.setpt_matrix[subdevice_name].iloc[self.next_sp]))
+
+		else:
+			for device_name in self.devices.keys():
+				for subdevice_name in self.devices[device_name].get_subdevice_names():
+					if self.devices[device_name].set_sp(subdevice_name,self.setpt_matrix[subdevice_name].iloc[self.next_sp]): #device should return whether setpt took successfully or not
 						pass
 					else:
 						print("Emergency! Subdevice {} should return True if it succesfully takes its given SP [here: {}], but subdevice returned False.".format(subdevice_name,self.setpt_matrix[subdevice_name].iloc[self.next_sp]))
 						self.set_emergency_sps()
-	else:
-		for device_name in self.devices.keys():
-			for subdevice_name in self.devices[device_name].get_subdevice_names():
-				if self.devices[device_name].set_sp(subdevice_name,self.setpt_matrix[subdevice_name].iloc[self.next_sp]): #device should return whether setpt took successfully or not
-					pass
-				else:
-					print("Emergency! Subdevice {} should return True if it succesfully takes its given SP [here: {}], but subdevice returned False.".format(subdevice_name,self.setpt_matrix[subdevice_name].iloc[self.next_sp]))
-					self.set_emergency_sps()
-		self.setpoint_switch_time = time.time()
-		self.current_sp += 1
-		self.next_sp += 1	
+			self.setpoint_switch_time = time.time()
+			self.current_sp += 1
+			self.next_sp += 1	
 
 	def log(self,headers=True):
 		self.prev_log_time = time.time()
@@ -248,7 +248,7 @@ def run_rxn(inputs_df,settings_json,rxn_name,rxn_dirname,mock):
 						rxn.gc_needs_logging = True
 					else:
 						print("Injection unsuccessful!\n")
-						rxn.email("Unsuccessful GC injection occurred @ {}\n".format(time.ctime(time.time)))
+						rxn.email("Unsuccessful GC injection occurred @ {}\n".format(time.ctime(time.time())))
 
 		time.sleep(5)
 

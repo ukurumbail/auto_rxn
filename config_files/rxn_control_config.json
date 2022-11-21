@@ -10,7 +10,7 @@
 	"inficon_gc" : {
 		"GC Module Name" : "inficon_gc",
 		"IP Address" : "169.254.1.1",
-		"Default Method" : "UK_C3ODH_01-23-22",
+		"Default Method" : "UK_C3ODH_20221110",
 		"Type" : "GC",
 		"Subdevices" :{
 			"Number of Samples" : {"Max Setting" : "None","Analysis Device Type" : "None","Dynamicity":"Static"},
@@ -46,6 +46,33 @@
 							   "Dev Lim" : 0.01,
 							   "Dev Type" : "Within setpt tolerance",
 								"Analysis Device Type" : "None","Dynamicity":"Static"},
+			"Reactor Temp" : {"Type" : "Float",
+							  "port" : "COM6",
+							  "baudrate" : 38400,
+							  "SP Write Address" : "None",
+							  "SP Read Address" : "None",
+							  "PV Read Address" : "None",
+							   "Max Setting" : 800,
+							   "Change Wait Time" : 600,
+							   "Dev Lim" : 3,
+							   "Dev Type" : "Do not check for emergency",
+							   "Expected dT/dt" : 0.165,
+							   "PID_params" : [1,1,0],
+							   "PID_sample_time" : 15,
+							   "PID_max_movement" : 5,
+								"Analysis Device Type" : "None","Dynamicity":"Static"},
+			"PV Offset" : { "Type" : "Float",
+						    "SP Write Address" : 33050,
+						    "SP Read Address" : 33050,
+						    "PV Read Address" : 33050,
+						    "Max Setting" : 100,
+						    "Change Wait Time" : 1,
+						    "Dev Lim" : 1,
+						    "Dev Type" : "Within setpt tolerance",
+						    "Analysis Device Type" : "None",
+						    "Trigger Threshold" : 0.5,
+						    "Dynamicity" : "Dynamic"
+			},
 			"Test" : {"Register" : 131, "Value" : 1,"Max Setting" : "None","Analysis Device Type" : "None","Dynamicity":"Static"}
 			}
 		},
@@ -109,10 +136,10 @@
 				"Flow Dev Lim" : 5,
 			"Analysis Device Type" : "Flow",
 			"Major Reactant" : "False","Dynamicity":"Static"},
-			"CH4_in_N2" : {
+			"PO_in_N2" : {
 				"node" : 10,
 				"Max Setting" : 120,
-				"Correction Factor" : 1.277,
+				"Correction Factor" : 1.007,
 				"Flow Dev Lim" : 15,
 			"Analysis Device Type" : "Flow",
 			"Major Reactant" : "False","Dynamicity":"Static"}
