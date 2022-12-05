@@ -50,7 +50,8 @@ class Device():
 
 		else:
 			self.cascade_control_possible = False
-
+			self.cascade_control_active = False
+			
 		if "PV Offset" in params.keys(): 
 			self.static_PV_offset = config["Subdevices"]["Furnace Temp"]["T Correction"] #get static PV Offset from Furnace Temp subdevice
 			if abs(self.static_PV_offset) > abs(config["Subdevices"]["PV Offset"]["Max Setting"]):
@@ -177,7 +178,7 @@ class Device():
 					prev_sp_time = time.time() #never called subdevice before
 					self.subdevices["PV Offset"].last_sp_time = prev_sp_time
 
-				if time.time()-prev_sp_time> 60: #only update this parameter once every minute:
+				if time.time()-prev_sp_time> 1: #only update this parameter once every 1 second or more.
 					reactor_PV = self.get_pv("Reactor Temp")
 					furnace_PV = self.get_pv("Furnace Temp")
 					furnace_PV_offset = self.get_sp("PV Offset")
@@ -241,6 +242,7 @@ class Subdevice():
 
 		if self.name == "Reactor Temp":
 			self.ser = serial.Serial(port=self.config["port"],baudrate=self.config["baudrate"])
+			self.PV_arr = []
 			try:
 				self.ser.open()
 			except serial.serialutil.SerialException: #port is already open
@@ -274,12 +276,21 @@ class Subdevice():
 		if self.name =="Furnace Temp":
 			return dev.read_float(self.pv_read_address)
 		elif self.name == "Reactor Temp":
-			self.ser.write("C\r".encode())
+			self.ser.write("F\r".encode())
 			time.sleep(0.1)
 			try: 
 				read_val = self.ser.readline().decode().rstrip()
 				read_val = read_val.replace('>','')
-				return float(read_val)
+				read_val_degC = 5/9 * (float(read_val)-32) #convert F to C
+				if len(self.PV_arr) < 1: #average 1 values
+					self.PV_arr.append(read_val_degC)
+
+				else:
+					self.PV_arr.pop(0)
+					self.PV_arr.append(read_val_degC)
+
+				return sum(self.PV_arr)/len(self.PV_arr)
+
 			except:
 				print("PV read error!!!!")
 				try:
@@ -299,7 +310,7 @@ class Subdevice():
 				dev.write_float(self.sp_write_address,sp_value)
 				time.sleep(.5)
 				dev_sp = self.get_sp(dev)
-				if dev_sp != sp_value:
+				if abs(abs(dev_sp) - abs(sp_value))>.01: #if deviating by more than .01 the setpoint did not take
 					print("SP did not take! Device SP: {} Requested SP: {}".format(dev_sp,sp_value))
 					return False
 				else:

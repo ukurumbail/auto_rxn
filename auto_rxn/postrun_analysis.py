@@ -115,7 +115,7 @@ def analyze(rxn_dirname,settings_dirname,just_dump=False):
 		gc_data = get_run_data(run_id,ip)
 		#time.sleep(2)
 		gc_detector_data = gc_data["detectors"]
-		for detector in ["moduleA:tcd","moduleB:tcd","moduleC:tcd"]:
+		for detector in ["moduleA:tcd","moduleB:tcd","moduleC:tcd","moduleD:tcd"]:
 			peaks = gc_detector_data[detector]["analysis"]["peaks"]
 			for peak in peaks:
 				if "label" not in peak.keys():
@@ -131,9 +131,14 @@ def analyze(rxn_dirname,settings_dirname,just_dump=False):
 	df_for_data_dump = df.copy()
 
 	#add GC data to arrays
+	df_len = df.shape[0]
 	for species in gc_areas.keys():
-		df[species] = gc_areas[species]
-		df_for_data_dump[species] = gc_areas[species] #don't add RT
+		if len(gc_areas[species]) != df_len:
+			print("Species {} has len {} but df has len {}".format(species,len(gc_areas[species]),df_len))
+			print("skipping")
+		else:
+			df[species] = gc_areas[species]
+			df_for_data_dump[species] = gc_areas[species] #don't add RT
 
 	for species in gc_areas.keys():	
 		df[species+" RT"] = gc_rts[species]

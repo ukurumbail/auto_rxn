@@ -1,0 +1,17 @@
+Control Point Name,iC4H10,O2,N2,OzO2,Cal Cyl,Number of Samples
+Control Point Units,mL/min,mL/min,mL/min,mL/min,mL/min,None
+Control Point Emergency Value,0,0,50,0,0,0
+Control Point Parent Device Name,bronkhorst_mfc,bronkhorst_mfc,bronkhorst_mfc,bronkhorst_mfc,bronkhorst_mfc,inficon_gc
+RECPE_STARTS_BELOW,,,,,,
+36,0,50,0,0,0,6
+36,0,45,5,0,0,6
+36,0,40,10,0,0,6
+36,0,35,15,0,0,6
+36,0,30,20,0,0,6
+36,0,25,25,0,0,6
+36,0,20,30,0,0,6
+36,0,15,35,0,0,6
+36,0,10,40,0,0,6
+36,0,5,45,0,0,6
+36,0,0,50,0,0,6
+36,0,30,30,0,0,6

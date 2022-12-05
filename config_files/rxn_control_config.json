@@ -70,7 +70,7 @@
 						    "Dev Lim" : 1,
 						    "Dev Type" : "Within setpt tolerance",
 						    "Analysis Device Type" : "None",
-						    "Trigger Threshold" : 0.5,
+						    "Trigger Threshold" : 1,
 						    "Dynamicity" : "Dynamic"
 			},
 			"Test" : {"Register" : 131, "Value" : 1,"Max Setting" : "None","Analysis Device Type" : "None","Dynamicity":"Static"}
@@ -136,10 +136,10 @@
 				"Flow Dev Lim" : 5,
 			"Analysis Device Type" : "Flow",
 			"Major Reactant" : "False","Dynamicity":"Static"},
-			"PO_in_N2" : {
+			"Cal Cyl" : {
 				"node" : 10,
 				"Max Setting" : 120,
-				"Correction Factor" : 1.007,
+				"Correction Factor" : 1.571,
 				"Flow Dev Lim" : 15,
 			"Analysis Device Type" : "Flow",
 			"Major Reactant" : "False","Dynamicity":"Static"}
