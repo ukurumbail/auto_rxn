@@ -47,11 +47,12 @@ class Device():
 			self.cascade_controller.auto_mode = False #set cascade controller to manual to start! (overall control mode = AUTO, not CASCADE)
 			self.cascade_controller.sample_time = self.cascade_pid_sample_time
 			self.cascade_controller_max_movement = config["Subdevices"]["Reactor Temp"]["PID_max_movement"] #In degC, the total possible deviation up or down the furnace setpoint can move from its initial value
-
+			self.prev_reactor_temp = None
+			self.reactor_PV_error_counter = 0
 		else:
 			self.cascade_control_possible = False
 			self.cascade_control_active = False
-			
+
 		if "PV Offset" in params.keys(): 
 			self.static_PV_offset = config["Subdevices"]["Furnace Temp"]["T Correction"] #get static PV Offset from Furnace Temp subdevice
 			if abs(self.static_PV_offset) > abs(config["Subdevices"]["PV Offset"]["Max Setting"]):
@@ -180,6 +181,20 @@ class Device():
 
 				if time.time()-prev_sp_time> 1: #only update this parameter once every 1 second or more.
 					reactor_PV = self.get_pv("Reactor Temp")
+
+					#Sometimes Omega device gives a weirdly high value ex. 5532. In these cases, only treat as error
+					#if you see a high value twice in a row
+					if reactor_PV > 1000: #most likely a weird error. Increment error counter
+						print("Reactor PV of {} reported. Assuming for now this is an error. If it happens twice in a row will throw an emergency.".format(reactor_PV))
+						self.reactor_PV_error_counter += 1
+						if self.reactor_PV_error_counter >= 2:
+							print("2 errors in a row for reactor PV found!")
+							print("Sending the device into error!") #by not doing anything and letting it fail on PV_Offset
+						else:
+							reactor_PV = self.prev_reactor_temp
+					else:
+						self.prev_reactor_temp = reactor_PV
+						self.reactor_PV_error_counter = 0 #reset error counter after a reasonable value
 					furnace_PV = self.get_pv("Furnace Temp")
 					furnace_PV_offset = self.get_sp("PV Offset")
 					print("Furnace PV with Offset: {:.5} Reactor PV: {:.5}. Prev Offset: {}".format(furnace_PV,reactor_PV,furnace_PV_offset))
