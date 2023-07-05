@@ -152,7 +152,6 @@ class Device():
 
 				if np.isclose(self.subdevices["Furnace Temp"].current_sp,self.current_max_temp_setpt):
 					return True #Do not further update setpoint if we're already at the setpoint
-
 				else:
 					#if SOAK, make sure we've set the right setpt and get out	
 					if self.subdevices["Ramp Rate"].get_sp(self.dev) == 0: # if SOAK
@@ -254,6 +253,8 @@ class Device():
 				return True #No updates needed if we're not in dynamic mode
 
 		else:
+			print("Got to else",list(subdev_name))
+			print(subdev_name=="Furnace Temp")
 			print("Trying to update setpoint for {} which is not listed as dynamic!!".format(subdev_name))
 			return False
 
@@ -263,7 +264,7 @@ class Mock_Subdevice():
 		self.name = name
 		self.units = params["Units"]
 		self.emergency_setting = params["Emergency Setpoint"]
-		self.current_sp = None
+		self.current_sp = 25
 		self.max_setting = config["Max Setting"]
 
 	def is_emergency(self,pv_read_time,sp_set_time,current_sp,current_pv):

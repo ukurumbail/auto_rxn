@@ -106,7 +106,6 @@ class Reaction():
 	def set_setpts(self,only_dynamic=False):
 
 
-
 		if only_dynamic: #only changing subdevices that are dynamic controlled, i.e. we're in the middle of a rxn recipe step
 			for device_name in self.devices.keys():
 				for subdevice_name in self.devices[device_name].get_subdevice_names():
@@ -116,7 +115,6 @@ class Reaction():
 						else:
 							self.set_emergency_sps()
 							print("Emergency! Subdevice {} should return True if it succesfully takes its given SP [here: {}], but subdevice returned False.".format(subdevice_name,self.setpt_matrix[subdevice_name].iloc[self.next_sp]))
-
 		else:
 			for device_name in self.devices.keys():
 				for subdevice_name in self.devices[device_name].get_subdevice_names():
@@ -128,6 +126,7 @@ class Reaction():
 			self.setpoint_switch_time = time.time()
 			self.current_sp += 1
 			self.next_sp += 1	
+
 
 	def log(self,headers=True):
 		self.prev_log_time = time.time()
@@ -213,8 +212,10 @@ def run_rxn(inputs_df,settings_json,rxn_name,rxn_dirname,mock):
 			print("time is ready for next switch!")
 			print("{} <- curr time sp_switch_time -> {} duration -> {}".format(time.time(),rxn.setpoint_switch_time,rxn.setpoint_switch_times[rxn.next_sp]))
 			if rxn.gc.all_samples_collected():
+				print("all_samples_collected")
 				if rxn.next_sp == (len(rxn.setpoint_switch_times)-1):
-						reaction_finished=True
+					print(reaction_finished)
+					reaction_finished=True
 				else:
 					print("\nSwitching setpoints...")
 					rxn.set_setpts()
