@@ -15,7 +15,7 @@ def get_run_data(run_id,ip):
 			bp_json = json.load(f)
 		return bp_json
 	else:
-		time.sleep(1)
+		time.sleep(0.1)
 		return requests.get("http://"+ip+"/v1/runData/"+run_id).json()
 
 
@@ -115,8 +115,16 @@ def analyze(rxn_dirname,settings_dirname,just_dump=False):
 		gc_data = get_run_data(run_id,ip)
 		#time.sleep(2)
 		gc_detector_data = gc_data["detectors"]
-		for detector in ["moduleA:tcd","moduleB:tcd","moduleC:tcd"]:
+		for detector in ["moduleA:tcd","moduleB:tcd","moduleC:tcd","moduleD:tcd"]:
 			peaks = gc_detector_data[detector]["analysis"]["peaks"]
+			if detector=="moduleD:tcd":
+				if "water" not in [peak["label"] if "label" in peak.keys() else None for peak in peaks] and "h2o2?" not in [peak["label"] if "label" in peak.keys() else None for peak in peaks]:
+					pass
+					# import iso8601
+					# from dateutil import tz
+					# print("water not found for this row! Timestamp: {}".format(iso8601.parse_date(gc_data["runTimeStamp"]).astimezone(tz.tzlocal())))
+					# print("Only peaks found are: {}".format( [peak["label"] if "label" in peak.keys() else '' for peak in peaks]))
+					# raise NotImplementedError()
 			for peak in peaks:
 				if "label" not in peak.keys():
 					pass #unlabelled peaks are ignored
@@ -131,9 +139,14 @@ def analyze(rxn_dirname,settings_dirname,just_dump=False):
 	df_for_data_dump = df.copy()
 
 	#add GC data to arrays
+	df_len = df.shape[0]
 	for species in gc_areas.keys():
-		df[species] = gc_areas[species]
-		df_for_data_dump[species] = gc_areas[species] #don't add RT
+		if len(gc_areas[species]) != df_len:
+			print("Species {} has len {} but df has len {}".format(species,len(gc_areas[species]),df_len))
+			print("skipping")
+		else:
+			df[species] = gc_areas[species]
+			df_for_data_dump[species] = gc_areas[species] #don't add RT
 
 	for species in gc_areas.keys():	
 		df[species+" RT"] = gc_rts[species]
