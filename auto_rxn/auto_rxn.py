@@ -142,7 +142,6 @@ class Reaction():
 		for device_name in self.devices.keys():
 			for subdevice_name in self.devices[device_name].get_subdevice_names():
 				self.log_values.append(self.devices[device_name].get_pv(subdevice_name))
-
 		#write to logfile
 		with open(self.logfile_location,'a') as f:
 			csv_writer = csv.writer(f, delimiter=',', lineterminator='\n', quoting=csv.QUOTE_MINIMAL)
@@ -223,6 +222,7 @@ def run_rxn(inputs_df,settings_json,rxn_name,rxn_dirname,mock):
 			time.sleep(5)
 		else:
 			rxn.set_setpts(only_dynamic=True) #update SP for all dynamic subdevices
+
 		if time.time() >= (rxn.prev_log_time+rxn.log_interval):
 			rxn.log()
 			if rxn.is_emergency():

@@ -10,7 +10,7 @@
 	"inficon_gc" : {
 		"GC Module Name" : "inficon_gc",
 		"IP Address" : "169.254.1.1",
-		"Default Method" : "UK_C3ODH_20221110",
+		"Default Method" : "UK_C3ODH_20230328",
 		"Type" : "GC",
 		"Subdevices" :{
 			"Number of Samples" : {"Max Setting" : "None","Analysis Device Type" : "None","Dynamicity":"Static"},
@@ -118,8 +118,8 @@
 			"O2" : {
 				"node" : 40,
 				"Max Setting" : 60,
-				"Correction Factor" : 1.024,
-				"Flow Dev Lim" : 2,
+				"Correction Factor" : 1.023,
+				"Flow Dev Lim" : 100,
 			"Analysis Device Type" : "Flow",
 			"Major Reactant" : "False","Dynamicity":"Static"},
 			"N2" : {
@@ -129,18 +129,18 @@
 				"Flow Dev Lim" : 2,
 			"Analysis Device Type" : "Flow",
 			"Major Reactant" : "False","Dynamicity":"Static"},
-			"OzO2" : {
+			"Aux_O2" : {
 				"node" : 20,
 				"Max Setting" : 20,
-				"Correction Factor" : 1.019,
-				"Flow Dev Lim" : 5,
+				"Correction Factor" : 1.025,
+				"Flow Dev Lim" : 25,
 			"Analysis Device Type" : "Flow",
 			"Major Reactant" : "False","Dynamicity":"Static"},
-			"Cal Cyl" : {
-				"node" : 10,
+			"C3H6" : {
+				"node" : 70,
 				"Max Setting" : 120,
-				"Correction Factor" : 1.571,
-				"Flow Dev Lim" : 15,
+				"Correction Factor" : 2.548,
+				"Flow Dev Lim" : 120,
 			"Analysis Device Type" : "Flow",
 			"Major Reactant" : "False","Dynamicity":"Static"}
 			}

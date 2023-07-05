@@ -41,10 +41,28 @@ class Device():
 		if self.mock:
 			return 'MOCK RUN {}'.format(random.randint(0,10000000))
 		time.sleep(2)
-		get_request = requests.get('http://' + self.ip + '/v1/lastRun').json()
 		try:
-			return get_request['dataLocation'].split('/')[-1]
+			get_request = requests.get('http://' + self.ip + '/v1/lastRun')
+			get_request_json = get_request.json()
+			return get_request_json['dataLocation'].split('/')[-1]
+		except json.decoder.JSONDecodeError:
+			print("Unable to decode GC get request: {}".format(get_request.content))
+			print("Going to try again")
+			try_counter = 0
+			while try_counter < 10:
+				time.sleep(2)
+				try:
+					get_request = requests.get('http://' + self.ip + '/v1/lastRun')
+					get_request_json = get_request.json()
+					return get_request_json['dataLocation'].split('/')[-1]
+				except:
+					try_counter += 1
+					print("Failed to read json again. Trying {} more times".format(10-try_counter))
+			return -999
 		except:
+			print("Unknown error trying to read json!!!")
+			import sys
+			print(sys.exc_info()[0])
 			return -999
 
 	def ready(self):

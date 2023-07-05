@@ -15,7 +15,7 @@ def get_run_data(run_id,ip):
 			bp_json = json.load(f)
 		return bp_json
 	else:
-		time.sleep(1)
+		time.sleep(0.1)
 		return requests.get("http://"+ip+"/v1/runData/"+run_id).json()
 
 
@@ -117,6 +117,14 @@ def analyze(rxn_dirname,settings_dirname,just_dump=False):
 		gc_detector_data = gc_data["detectors"]
 		for detector in ["moduleA:tcd","moduleB:tcd","moduleC:tcd","moduleD:tcd"]:
 			peaks = gc_detector_data[detector]["analysis"]["peaks"]
+			if detector=="moduleD:tcd":
+				if "water" not in [peak["label"] if "label" in peak.keys() else None for peak in peaks] and "h2o2?" not in [peak["label"] if "label" in peak.keys() else None for peak in peaks]:
+					pass
+					# import iso8601
+					# from dateutil import tz
+					# print("water not found for this row! Timestamp: {}".format(iso8601.parse_date(gc_data["runTimeStamp"]).astimezone(tz.tzlocal())))
+					# print("Only peaks found are: {}".format( [peak["label"] if "label" in peak.keys() else '' for peak in peaks]))
+					# raise NotImplementedError()
 			for peak in peaks:
 				if "label" not in peak.keys():
 					pass #unlabelled peaks are ignored

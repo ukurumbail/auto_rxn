@@ -3,4 +3,5 @@ Control Point Units,mL/min,mL/min,mL/min,mL/min,mL/min,None
 Control Point Emergency Value,0,0,50,0,0,0
 Control Point Parent Device Name,bronkhorst_mfc,bronkhorst_mfc,bronkhorst_mfc,bronkhorst_mfc,bronkhorst_mfc,inficon_gc
 RECPE_STARTS_BELOW,,,,,,
-36,0,0,0,0,40,6
+90,18.3048,12.288,44.044,0,0,15
+10,0,0,50,0,0,2

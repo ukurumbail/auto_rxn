@@ -2,6 +2,7 @@ import minimalmodbus
 import simple_pid
 import serial
 import time
+import numpy as np
 class Device():
 	#If you need to activate port: Go to iTools OPC Server --> Edit --> iTools Control Panel and uncheck whatever port
 	def __init__(self,params,config,mock=False):
@@ -33,6 +34,8 @@ class Device():
 		if "Ramp Rate" in params.keys():
 			self.ramp_rate_exists=True
 			self.last_sp_time = None
+			self.prev_max_setpt = None 
+			self.current_max_temp_setpt = None
 		else:
 			self.ramp_rate_exists=False
 
@@ -74,8 +77,12 @@ class Device():
 
 	def set_sp(self,subdev_name,sp_value):
 		if self.ramp_rate_exists and subdev_name == "Furnace Temp":
-			self.prev_max_setpt = self.current_max_temp_setpt
+			if self.prev_max_setpt == None:
+				self.prev_max_setpt = self.subdevices[subdev_name].get_sp(self.dev)
+			else:
+				self.prev_max_setpt = self.current_max_temp_setpt
 			self.current_max_temp_setpt = sp_value
+			self.ramp_rate_timer = 0 #times ramp rate to only send a signal to Furnace once per minute
 			return True
 		if subdev_name == "PV Offset":
 			if sp_value == 0: #Offset should be set to 0
@@ -134,21 +141,55 @@ class Device():
 	def update_sp(self,subdev_name):
 		if subdev_name == "Furnace Temp":
 			if self.ramp_rate_exists:
+
+
+				#make sure we have no none-type values
 				if self.last_sp_time == None:
 					self.last_sp_time = time.time()
-				new_sp = self.subdevices["Furnace Temp"].current_sp + (self.get_sp("Ramp Rate") * (time.time() - self.last_sp_time)/60)	
-				if self.current_max_temp_setpt > self.prev_max_setpt:
-					new_sp = min(new_sp,self.current_max_temp_setpt) #want minimum of the two if increasing temp
+				if self.subdevices["Furnace Temp"].current_sp == None:
+					self.subdevices["Furnace Temp"].current_sp = self.subdevices["Furnace Temp"].get_sp(self.dev)
 
-				elif self.current_max_temp_setpt < self.prev_max_setpt:
-					new_sp = max(new_sp,self.current_max_temp_setpt)
 
-				else: #no change in temp setpt
-					return True
-				if new_sp != self.subdevices["Furnace Temp"].current_sp:
-					return self.set_sp("Furnace Temp",new_sp)
+				if np.isclose(self.subdevices["Furnace Temp"].current_sp,self.current_max_temp_setpt):
+					return True #Do not further update setpoint if we're already at the setpoint
+
 				else:
-					return True #no need to re-set setpoint if we've reached our new resting point
+					#if SOAK, make sure we've set the right setpt and get out	
+					if self.subdevices["Ramp Rate"].get_sp(self.dev) == 0: # if SOAK
+						if self.subdevices["Furnace Temp"].current_sp != self.current_max_temp_setpt: #set the setpoint that was stored!!!
+							return self.subdevices[subdev_name].set_sp(self.dev,self.current_max_temp_setpt)
+						else:
+							return True #we're done if we're in a SOAK
+					else: #We are not doing a SOAK
+
+						#Check to make sure we didn't accidentally set a positive ramp rate for a decreasing temperature, etc.
+						if self.get_sp("Ramp Rate") > 0:
+							if self.current_max_temp_setpt < self.prev_max_setpt:
+								print("Error! Trying to set a positive ramp rate to a lower temperature setpt...")
+								print(self.current_max_temp_setpt,self.prev_max_setpt)
+								return False
+						elif self.get_sp("Ramp Rate") < 0:
+							if self.current_max_temp_setpt > self.prev_max_setpt:
+								print("Error! Trying to set a negative ramp rate to a higher temperature setpt...")
+								return False
+
+						if time.time()-self.ramp_rate_timer > 60: #never set a new setpoint more often than every min
+							new_sp = self.subdevices["Furnace Temp"].current_sp + (self.get_sp("Ramp Rate") * (time.time() - self.last_sp_time)/60)	
+							print(self.subdevices["Furnace Temp"].current_sp,time.time(),self.last_sp_time)
+							self.ramp_rate_timer = time.time() #reset ramp rate timer (used to avoid sending too many signals to furnace)							
+							if self.current_max_temp_setpt > self.prev_max_setpt:
+								new_sp = min(new_sp,self.current_max_temp_setpt) #want minimum of the two if increasing temp
+
+							elif self.current_max_temp_setpt < self.prev_max_setpt:
+								new_sp = max(new_sp,self.current_max_temp_setpt)
+
+							else: #no change in temp setpt
+								return True
+
+							if new_sp != self.subdevices["Furnace Temp"].current_sp:
+								return self.subdevices[subdev_name].set_sp(self.dev,new_sp)
+						else:
+							return True #no need to re-set setpoint if we've reached our new resting point
 
 			elif self.cascade_control_active: #dynamically setting furnace temp
 				#first check to see if we are ready to enable cascade control. We only do this once the 
@@ -254,6 +295,7 @@ class Subdevice():
 		self.dev_lim = config["Dev Lim"]
 		self.dev_type = config["Dev Type"]
 		self.config = config
+		self.write_counter = 0
 
 		if self.name == "Reactor Temp":
 			self.ser = serial.Serial(port=self.config["port"],baudrate=self.config["baudrate"])
@@ -315,6 +357,8 @@ class Subdevice():
 					return -200
 		elif self.name == "PV Offset":
 			return self.get_sp(dev)
+		elif self.name == "Ramp Rate":
+			return self.get_sp(dev)
 	def set_sp(self,dev,sp_value):
 		if self.current_sp == None:
 			self.current_sp = self.get_sp(dev)
@@ -322,7 +366,13 @@ class Subdevice():
 
 		if sp_value	< self.max_setting:
 			if self.name == "Furnace Temp" or self.name == "PV Offset":
-				dev.write_float(self.sp_write_address,sp_value)
+				curr_sp = self.get_sp(dev)
+				if sp_value != curr_sp:
+						dev.write_float(self.sp_write_address,sp_value)
+						self.write_counter += 1
+						print("Write Counter: {}".format(self.write_counter))
+				else:
+					print("New SP {} is same as current SP {} for furnace subdevice {}. Not re-writing value.".format(sp_value,curr_sp,self.name))
 				time.sleep(.5)
 				dev_sp = self.get_sp(dev)
 				if abs(abs(dev_sp) - abs(sp_value))>.01: #if deviating by more than .01 the setpoint did not take
