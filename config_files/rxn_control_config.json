@@ -2,14 +2,14 @@
 	"main" : {
 		"GC Module Name" : "inficon_gc",
 		"Subdevices": {},
-		"mock" : "true"},
+		"mock" : "False"},
 	"logger" : {
 		"log_interval (s)" : 5,
 		"Subdevices" :{}
 		},
 	"inficon_gc" : {
 		"GC Module Name" : "inficon_gc",
-		"IP Address" : "169.254.1.1",
+		"IP Address" : "169.254.63.67",
 		"Default Method" : "UK_C3ODH_20230328",
 		"Type" : "GC",
 		"Subdevices" :{
@@ -20,7 +20,7 @@
 		},
 
 	"eurotherm_3216" : {
-		"port" : "COM5",
+		"port" : "COM6",
 		"address" : 1,
 		"baudrate" : 9600,
 		"timeout" : 1,
@@ -32,8 +32,8 @@
 							  "SP Read Address" : 32772,
 							  "PV Read Address" : 32770,
 							   "Max Setting" : 800,
-							   "Change Wait Time" : 600,
-							   "Dev Lim" : 3,
+							   "Change Wait Time" : 4200,
+							   "Dev Lim" : 33,
 							   "Dev Type" : "Change from previous",
 								"Analysis Device Type" : "Reactor Temp",
 								"T Correction" : 21,"Dynamicity":"Dynamic"},
@@ -47,7 +47,7 @@
 							   "Dev Type" : "Within setpt tolerance",
 								"Analysis Device Type" : "None","Dynamicity":"Static"},
 			"Reactor Temp" : {"Type" : "Float",
-							  "port" : "COM6",
+							  "port" : "COM5",
 							  "baudrate" : 38400,
 							  "SP Write Address" : "None",
 							  "SP Read Address" : "None",
@@ -115,13 +115,6 @@
 				"Flow Dev Lim" : 2,
 			"Analysis Device Type" : "Flow",
 			"Major Reactant" : "True","Dynamicity":"Static"},
-			"H2" : {
-				"node" : 50,
-				"Max Setting" : 60,
-				"Correction Factor" : 0.7627,
-				"Flow Dev Lim" : 2,
-			"Analysis Device Type" : "Flow",
-			"Major Reactant" : "True","Dynamicity":"Static"},
 			"O2" : {
 				"node" : 40,
 				"Max Setting" : 60,
@@ -136,15 +129,15 @@
 				"Flow Dev Lim" : 2,
 			"Analysis Device Type" : "Flow",
 			"Major Reactant" : "False","Dynamicity":"Static"},
-			"Aux_O2" : {
+			"N2O" : {
 				"node" : 20,
 				"Max Setting" : 20,
-				"Correction Factor" : 1.025,
+				"Correction Factor" : 1.411,
 				"Flow Dev Lim" : 25,
 			"Analysis Device Type" : "Flow",
 			"Major Reactant" : "False","Dynamicity":"Static"},
 			"C3H6" : {
-				"node" : 70,
+				"node" : 60,
 				"Max Setting" : 120,
 				"Correction Factor" : 2.548,
 				"Flow Dev Lim" : 120,
@@ -166,6 +159,20 @@
 			},
 		 	"6-way" : {
 				"node" : 6,
+				"Max Setting" : 999999,
+				"Dev Lim" : 999999,
+			"Analysis Device Type" : "Valve","Dynamicity":"Static"
+			}
+		}
+	},
+	"vici_valves_8way" : {
+		"port" : "COM7",
+		"baudrate" : 9600,
+		"timeout" : 1,
+		"Wait Time (sec)" : 5, 
+		"Subdevices" : {
+		 	"gc_stream" : {
+				"node" : 0,
 				"Max Setting" : 999999,
 				"Dev Lim" : 999999,
 			"Analysis Device Type" : "Valve","Dynamicity":"Static"

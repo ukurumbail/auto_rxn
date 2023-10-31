@@ -1,6 +1,10 @@
-Control Point Name,iC4H10,O2,N2,Aux_O2,C3H6,Furnace Temp,Reactor Temp,PV Offset,Number of Samples,Delay Time
+Control Point Name,iC4H10,O2,N2,N2O,C3H6,Furnace Temp,Reactor Temp,PV Offset,Number of Samples,Delay Time
 Control Point Units,mL/min,mL/min,mL/min,mL/min,mL/min,degC,degC,degC,Number,min
-Control Point Emergency Value,0,0,50,0,0,500,-1,3,0,0
+Control Point Emergency Value,0,0,50,0,0,25,-1,3,0,0
 Control Point Parent Device Name,bronkhorst_mfc,bronkhorst_mfc,bronkhorst_mfc,bronkhorst_mfc,bronkhorst_mfc,eurotherm_3216,eurotherm_3216,eurotherm_3216,inficon_gc,inficon_gc
 RECPE_STARTS_BELOW,,,,,,,,,,
-15,0,16.368,64.064,0,0,25,-1,2,0,0
+48,9.1524,6.138,22.022,0,0,25,-1,2,6,0
+48,4.5762,6.138,28.028,0,0,25,-1,2,6,0
+48,4.5762,3.069,31.031,0,0,25,-1,2,6,0
+48,3.0508,2.046,34.034,0,0,25,-1,2,6,0
+30,0,8.184,32.032,0,0,25,-1,2,0,0

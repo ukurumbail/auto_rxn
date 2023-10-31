@@ -1,0 +1,9 @@
+Control Point Name,gc_stream,Number of Samples
+Control Point Units,Int,Number
+Control Point Emergency Value,4,0
+Control Point Parent Device Name,vici_valves_8way,inficon_gc
+RECPE_STARTS_BELOW,,
+0.5,4,0
+0.5,6,0
+0.5,2,0
+0.5,3,0
