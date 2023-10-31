@@ -15,7 +15,9 @@
 		"Subdevices" :{
 			"Number of Samples" : {"Max Setting" : "None","Analysis Device Type" : "None","Dynamicity":"Static"},
 			"Method Name" : {"Max Setting" : "None","Analysis Device Type" : "None","Dynamicity":"Static"},
-			"Delay Time" : {"Max Setting" : "None","Analysis Device Type" : "None","Dynamicity":"Static"}
+			"Delay Time" : {"Max Setting" : "None","Analysis Device Type" : "None","Dynamicity":"Static"},
+			"Injection Offset" : {"Max Setting" : "None","Analysis Device Type" : "None","Dynamicity":"Static"},
+			"Move on Inject" : {"Max Setting" : "None","Analysis Device Type" : "None","Dynamicity":"Static"}
 			}
 		},
 

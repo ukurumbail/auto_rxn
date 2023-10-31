@@ -16,6 +16,12 @@ class Device():
 		else:
 			self.delay_exists=False
 
+		if "Injection Offset" in params.keys():
+			self.offset_exists=True
+			self.last_sp_change_time = 0
+		else:
+			self.offset_exists=False
+
 		if self.mock:
 			for subdev_name in params.keys(): #for each subdevice in input file
 				self.subdevices[subdev_name] = Mock_Subdevice(subdev_name,params[subdev_name],config["Subdevices"][subdev_name])
@@ -76,15 +82,23 @@ class Device():
 			else:
 				return True
 		else:
-			if 'public:ready' in self.get_state():
-				if self.delay_exists:
+			if 'public:ready' in self.get_state(): #Physical GC instrument is ready. Next check our timers.
+				return_value=True
+				if self.delay_exists: #This delays injections to prevent injecting more frequently than every x minutes.
 					if time.time() > (self.get_sp("Delay Time")*60 + self.last_injection_time):
-						return True
+						pass #no change to return value needed
 					else:
-						print("Injection delayed. Time until next injection:", round(((self.last_injection_time + self.get_sp("Delay Time")*60 - time.time()) - (self.last_injection_time + self.get_sp("Delay Time")*60 - time.time())%60)/60) , "minutes", round((self.last_injection_time + self.get_sp("Delay Time")*60 - time.time())%60), "seconds")
-						return False
+						print("Injection delayed due to delay time. Time until next injection:", round(((self.last_injection_time + self.get_sp("Delay Time")*60 - time.time()) - (self.last_injection_time + self.get_sp("Delay Time")*60 - time.time())%60)/60) , "minutes", round((self.last_injection_time + self.get_sp("Delay Time")*60 - time.time())%60), "seconds")
+						return_value=False
 				else:
-					return True 
+					pass #ignore delay time. Move on to inject offset
+				if self.offset_exists: #This delays the first injection of a new recipe step for x minutes.
+					if time.time() > (self.get_sp("Injection Offset")*60+self.last_sp_change_time):
+						pass #ready to inject based on offset.
+					else:
+						print("Injection delayed due to injection offset. Time until next injection: {:.4} seconds".format(self.get_sp("Injection Offset")*60-(time.time()-self.last_sp_change_time)))
+						return_value=False
+				return return_value
 			else:
 				return False
 
@@ -121,6 +135,8 @@ class Device():
 		return self.subdevices[subdev_name].get_sp()
 
 	def set_sp(self,subdev_name,sp_value):
+		if subdev_name == "Injection Offset":
+			self.last_sp_change_time=time.time()
 		return self.subdevices[subdev_name].set_sp(sp_value)
 
 	def is_emergency(self,subdev_name,pv_read_time,sp_set_time,current_sp,current_pv):
