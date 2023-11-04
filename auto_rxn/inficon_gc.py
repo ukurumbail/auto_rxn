@@ -137,6 +137,7 @@ class Device():
 	def set_sp(self,subdev_name,sp_value):
 		if subdev_name == "Injection Offset":
 			self.last_sp_change_time=time.time()
+			print(f'New injection offset time: {self.last_sp_change_time}')
 		return self.subdevices[subdev_name].set_sp(sp_value)
 
 	def is_emergency(self,subdev_name,pv_read_time,sp_set_time,current_sp,current_pv):
@@ -152,6 +153,7 @@ class Device():
 		if self.subdevices["Number of Samples"].num_injections == self.subdevices["Number of Samples"].current_sp:
 			return True
 		else:
+			print(f'Collections. Injections: {self.subdevices["Number of Samples"].num_injections} Reqd: {self.subdevices["Number of Samples"].current_sp}')
 			return False
 
 
