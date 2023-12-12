@@ -123,6 +123,7 @@ class Device():
 			if get_request.status_code == 200:
 				self.subdevices["Number of Samples"].num_injections += 1 
 				self.last_injection_time = time.time()
+				time.sleep(75)
 				return True		
 			else: #Status code of 500 returned if injection unsuccessful
 				return False

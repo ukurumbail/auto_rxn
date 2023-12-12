@@ -20,7 +20,7 @@ def get_run_data(run_id,ip):
 
 
 
-def analyze(rxn_dirname,settings_dirname,just_dump=False):
+def analyze(rxn_dirname,settings_dirname,just_dump=False,six_flow=False):
 	#takes in the directory for a reaction and produces an analysis
 
 	rxn_name = rxn_dirname.split('\\')[-1]
@@ -155,7 +155,11 @@ def analyze(rxn_dirname,settings_dirname,just_dump=False):
 	print("Dumping GC Data...") 
 	formatted_time = df_for_data_dump["GC Time Stamp"].apply(lambda x: datetime.datetime.strptime(time.ctime(x), "%c"))
 	df_for_data_dump.insert(df.columns.get_loc('Type'), 'Timestamp (Formatted)', formatted_time)
-	df_for_data_dump.sort_values(by=["GC Time Stamp"])
+	if six_flow:
+		df_for_data_dump.insert(df.columns.get_loc('Type'), "GC Stream",df_for_data_dump["gc_stream"])
+		df_for_data_dump.sort_values(by=["Type","gc_stream","GC Time Stamp"],inplace=True)
+	else:
+		df_for_data_dump.sort_values(by=["GC Time Stamp"])
 	df_for_data_dump.to_excel(rxn_dirname+"\\"+rxn_name+" gc data.xlsx")
 	print("Dumped successfully.")
 	if just_dump: #end function here if we're just dumping

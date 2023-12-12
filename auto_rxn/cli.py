@@ -15,10 +15,10 @@ from optparse import OptionParser
 @click.option('--settings_directory', default='config_files', help='Directory for settings file utilized by rxn control.')
 @click.option('--storage_directory', default='../rxn_files', help='Directory to store all outputs in.')
 @click.option('--rxn_name', help='This name will be utilized to create a subdirectory for your reaction files.') #prompt='Name for reaction'
-@click.option('--run_or_analyze',default="run",help="Option is 'run' to run a reaction or 'analyze' to analyze an already-ran rxn or 'just_dump' to just get all the formatted gc data.")
+@click.option('--run_or_analyze',default="run",help="Option is 'run' to run a reaction, 'analyze' to analyze an already-ran rxn, 'analyze_6flow' to do 6flow processing, or 'just_dump' to just get all the formatted gc data.")
 def main(recipe_file,settings_file,recipe_directory,settings_directory,storage_directory,rxn_name,run_or_analyze):
 	"""Console script for auto_rxn."""
-	if run_or_analyze == "analyze" or run_or_analyze == "just_dump":
+	if run_or_analyze == "analyze" or run_or_analyze == "just_dump" or run_or_analyze == "analyze_6flow":
 		dirname = pathlib.Path.cwd()
 
 		rxn_dirname = os.path.join(dirname, storage_directory)
@@ -34,9 +34,11 @@ def main(recipe_file,settings_file,recipe_directory,settings_directory,storage_d
 
 		click.echo('Found reaction. Beginning analysis.')
 		if run_or_analyze == "just_dump":
-			postrun_analysis.analyze(rxn_dirname,settings_dirname,just_dump=True)
+			postrun_analysis.analyze(rxn_dirname,settings_dirname,just_dump=True,six_flow=False)
+		elif run_or_analyze == "analyze_6flow":
+			postrun_analysis.analyze(rxn_dirname,settings_dirname,just_dump=True,six_flow=True)
 		else:
-			postrun_analysis.analyze(rxn_dirname,settings_dirname,just_dump=False)
+			postrun_analysis.analyze(rxn_dirname,settings_dirname,just_dump=False,six_flow=False)
 	if run_or_analyze == "run":
 		dirname = pathlib.Path.cwd()
 		print(dirname,storage_directory)
