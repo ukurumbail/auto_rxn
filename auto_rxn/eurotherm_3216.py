@@ -5,7 +5,7 @@ import time
 import numpy as np
 class Device():
 	#If you need to activate port: Go to iTools OPC Server --> Edit --> iTools Control Panel and uncheck whatever port
-	def __init__(self,params,config,mock=False):
+	def __init__(self,params,config,mock=False,rxn_dir=None):
 		self.config = config
 		self.params = params
 		# self.flow_dev_lim = 2

@@ -2,7 +2,7 @@ import serial
 import time
 
 class Device():
-	def __init__(self,params,config,mock=False):
+	def __init__(self,params,config,mock=False,rxn_dir=None):
 		self.config = config
 		self.params = params
 		self.wait_time = self.config["Wait Time (sec)"]
