@@ -160,176 +160,239 @@ def analyze(rxn_dirname,settings_dirname,just_dump=False,six_flow=False):
 		df_for_data_dump.sort_values(by=["Type","gc_stream","GC Time Stamp"],inplace=True)
 	else:
 		df_for_data_dump.sort_values(by=["GC Time Stamp"])
-	df_for_data_dump.to_excel(rxn_dirname+"\\"+rxn_name+" gc data.xlsx")
-	print("Dumped successfully.")
+
+	df_for_data_dump.to_excel(rxn_dirname+"\\"+rxn_name+" gc data unanalyzed.xlsx")
+	print("Unanalyzed data dumped successfully.")
+
+
 	if just_dump: #end function here if we're just dumping
+		return True
+
+	print("Proceeding with analysis...")
+
+
+
+
+	if six_flow: #minimum viable. Just populating the excel
+
+
+		
+		reactors = df_for_data_dump['gc_stream'].unique() #gets all the reactors used in this run (1,2,3,4,5,6)
+
+
+
+		wb = load_workbook(settings_dirname+"\\AnalysisTemplateHeterogeneous6Flow.xlsx")
+		
+		col_names=["Timestamp (Formatted)", "Reaction Name","oxygen","nitrogen","methane","carbon monoxide","carbon dioxide",
+		"ethane","ethylene","propane","propylene","isobutane","n-butane","trans-2-butene","1-butene","isobutene","cis-2-butene",
+		"1,3-butadiene"]
+
+		for r in reactors: #Iterate over each of the reactors
+			ws = wb[f'{r}']
+
+			df_working = df_for_data_dump #Already sorted by Type, Reactor, Timestamp in that order of importance.
+			df_working = df_working[df_working["gc_stream"] == int(r)]
+			
+			#write the bypass
+			start_r = 3
+			start_c = 1
+			df_bp = df_working[df_working["Type"] =="Bypass"] 
+
+
+
+			if df_bp.shape[0] > 3: #just want last 3 runs
+				df_bp = df_bp.iloc[-3:,:]
+				
+			df_bp.reset_index(drop=True,inplace=True)
+
+			for i,row in df_bp.iterrows():
+				for j,col_name in enumerate(col_names):
+					ws.cell(row=start_r+i,column=start_c+j).value = row[col_name]
+
+			#write the reaction data
+			start_r = 14
+			start_c = 1
+			df_rxn = df_working[df_working["Type"] =="Reaction"] 
+			df_rxn.reset_index(drop=True,inplace=True)
+			for i,row in df_rxn.iterrows():
+				for j,col_name in enumerate(col_names):
+					ws.cell(row=start_r+i,column=start_c+j).value = row[col_name]		
+
+			print("Analyzed reactor {}".format(r))	
+
+		#Creating filepath
+		filestr = rxn_dirname + "\\" + rxn_name+ "_Analysis6Flow" + ".xlsx"
+		wb.save(filestr)	
+		print("Analysis completed successfully. Access at {}".format(filestr))
 		return True
 
 
 
 
+	else:
+
+		#select and group bypass runs by input values
+
+		sorted_rows = {}
+		flow_pcts = {}
+		idx = 0
+
+		df_bypass = df.loc[df['Type'] == "Bypass"]
+		#sort values (Type --> Total Flow --> Time for sorted_rows)
+		df_bypass.sort_values(by=["gc_stream","Total Flow","GC Time Stamp"]) #sorts it into BP, Rxn, Unanalyzed
 
 
 
-	#select and group bypass runs by input values
-
-	sorted_rows = {}
-	flow_pcts = {}
-	idx = 0
-
-	df_bypass = df.loc[df['Type'] == "Bypass"]
-	#sort values (Type --> Total Flow --> Time for sorted_rows)
-	df_bypass.sort_values(by=["Total Flow","GC Time Stamp"]) #sorts it into BP, Rxn, Unanalyzed
 
 
+		for i, row in df_bypass.iterrows(): #for each bypass entry
+			row_flow_pcts = {sub+" percent" : row[sub+" percent"] for sub in flow_subdevs}
+			is_same_flow_pcts = False
+			for key in sorted_rows.keys(): #iterate through existing sets of flow percentages
+				if np.allclose(list(flow_pcts[key]),list(row_flow_pcts.values())): #if all flow percentages are the same as an existing entry
+					is_same_flow_pcts = True
+					is_same_flow_tot = False #now try and find the correct flowrate
+					for flow_key in sorted_rows[key][-999].keys():
+						if np.isclose([flow_key],[row["Total Flow"]]):
+							sorted_rows[key][-999][flow_key].append(row)
+							is_same_flow_tot = True
+						else:
+							pass
+					if is_same_flow_tot:
+						pass 
+					else: #found the right flow percentages but haven't yet found an entry with the same flowrate. Make a new one
+						sorted_rows[key][-999][row["Total Flow"]] = [row]
+				else:
+					pass
 
-	for i, row in df_bypass.iterrows(): #for each bypass entry
-		row_flow_pcts = {sub+" percent" : row[sub+" percent"] for sub in flow_subdevs}
-		is_same_flow_pcts = False
-		for key in sorted_rows.keys(): #iterate through existing sets of flow percentages
-			if np.allclose(list(flow_pcts[key]),list(row_flow_pcts.values())): #if all flow percentages are the same as an existing entry
-				is_same_flow_pcts = True
-				is_same_flow_tot = False #now try and find the correct flowrate
-				for flow_key in sorted_rows[key][-999].keys():
-					if np.isclose([flow_key],[row["Total Flow"]]):
-						sorted_rows[key][-999][flow_key].append(row)
-						is_same_flow_tot = True
-					else:
-						pass
-				if is_same_flow_tot:
-					pass 
-				else: #found the right flow percentages but haven't yet found an entry with the same flowrate. Make a new one
-					sorted_rows[key][-999][row["Total Flow"]] = [row]
-			else:
+
+			if is_same_flow_pcts: #the new row has the same flow percentages as an existing row. i.e. it belongs in the same bypass file
 				pass
 
+			else: #totally new bypass file should be made for this entry.
+				sorted_rows[idx] = {-999:{row["Total Flow"]:[row]}} #-999 corresponds to bypass
+				flow_pcts[idx] = row_flow_pcts.values()
+				idx += 1
 
-		if is_same_flow_pcts: #the new row has the same flow percentages as an existing row. i.e. it belongs in the same bypass file
-			pass
 
-		else: #totally new bypass file should be made for this entry.
-			sorted_rows[idx] = {-999:{row["Total Flow"]:[row]}} #-999 corresponds to bypass
-			flow_pcts[idx] = row_flow_pcts.values()
-			idx += 1
+		#Now repeat for the different reaction flows
+		df_rxn = df.loc[df['Type'] == "Reaction"]
 
-	#Now repeat for the different reaction flows
-	df_rxn = df.loc[df['Type'] == "Reaction"]
+		df_rxn.sort_values(by=["Type","Reactor Temperature Corrected","Total Flow","GC Time Stamp"]) 
 
-	df_rxn.sort_values(by=["Type","Reactor Temperature Corrected","Total Flow","GC Time Stamp"]) 
+		for i, row in df_rxn.iterrows(): #for each bypass entry
+			row_flow_pcts = {sub+" percent" : row[sub+" percent"] for sub in flow_subdevs}
+			my_idx = None
+			for key in sorted_rows.keys():
+				if np.allclose(list(flow_pcts[key]),list(row_flow_pcts.values())):
+					my_idx = key
+					break
 
-	for i, row in df_rxn.iterrows(): #for each bypass entry
-		row_flow_pcts = {sub+" percent" : row[sub+" percent"] for sub in flow_subdevs}
-		my_idx = None
-		for key in sorted_rows.keys():
-			if np.allclose(list(flow_pcts[key]),list(row_flow_pcts.values())):
-				my_idx = key
-				break
+			T_exists = False
+			
+			for T in sorted_rows[my_idx].keys():
+				if np.isclose([row["Reactor Temperature Corrected"]],[T]):
+					T_exists = True
+					Flow_exists = False
+					for flow in sorted_rows[my_idx][T].keys():
+						if np.isclose([flow],row["Total Flow"]):
+							sorted_rows[my_idx][T][flow].append(row)
+							Flow_exists = True
 
-		T_exists = False
-		
-		for T in sorted_rows[my_idx].keys():
-			if np.isclose([row["Reactor Temperature Corrected"]],[T]):
-				T_exists = True
-				Flow_exists = False
-				for flow in sorted_rows[my_idx][T].keys():
-					if np.isclose([flow],row["Total Flow"]):
-						sorted_rows[my_idx][T][flow].append(row)
-						Flow_exists = True
+					if not Flow_exists:
+						sorted_rows[my_idx][T][row["Total Flow"]] = [row]
 
-				if not Flow_exists:
-					sorted_rows[my_idx][T][row["Total Flow"]] = [row]
-
-		if not T_exists:
-			sorted_rows[my_idx][row["Reactor Temperature Corrected"]] = {row["Total Flow"] : [row]}
+			if not T_exists:
+				sorted_rows[my_idx][row["Reactor Temperature Corrected"]] = {row["Total Flow"] : [row]}
 
 
 
-	#only keep last 3 of each set of data
-	for (idx, dataset) in sorted_rows.items():
-		for (T,rowset) in dataset.items():
-			for (flow,rows) in rowset.items():
-				sorted_rows[idx][T][flow] = rows[-3:]
+		#only keep last 3 of each set of data
+		for (idx, dataset) in sorted_rows.items():
+			for (T,rowset) in dataset.items():
+				for (flow,rows) in rowset.items():
+					sorted_rows[idx][T][flow] = rows[-3:]
 
 
 
-	#Now begin writing to files
-	for (idx,dataset) in sorted_rows.items():
+		#Now begin writing to files
+		for (idx,dataset) in sorted_rows.items():
 
-		#Creating copy of analysis file
-		filestr = rxn_dirname + "\\" + rxn_name+ "_Analysis" 
-		for species, pct in zip(flow_subdevs,flow_pcts[idx]):
-			pct = round(pct)
-			filestr += "_"
-			filestr +=species
-			filestr +="-"
-			filestr += str(pct) 
-		filestr += ".xlsx"
-		print(filestr)
-		shutil.copy2(settings_dirname+"\\AnalysisTemplate.xlsx",filestr)	
+			#Creating copy of analysis file
+			filestr = rxn_dirname + "\\" + rxn_name+ "_Analysis" 
+			for species, pct in zip(flow_subdevs,flow_pcts[idx]):
+				pct = round(pct)
+				filestr += "_"
+				filestr +=species
+				filestr +="-"
+				filestr += str(pct) 
+			filestr += ".xlsx"
+			print(filestr)
+			shutil.copy2(settings_dirname+"\\AnalysisTemplate.xlsx",filestr)	
 
-		#Constructing new dataframe to add to template
-		df = pd.DataFrame(columns = df_bypass.columns)
-		bypass_flow_rates = []
-		bypasses_added = 0
+			#Constructing new dataframe to add to template
+			df = pd.DataFrame(columns = df_bypass.columns)
+			bypass_flow_rates = []
+			bypasses_added = 0
 
-		for (key,val) in dataset.items():
-			if key == -999: #bypass
-				for (flow,rows) in val.items():
-					bypass_flow_rates.append(flow)
-					df = pd.concat([df,pd.DataFrame(rows)])
-					bypasses_added += len(rows)
+			for (key,val) in dataset.items():
+				if key == -999: #bypass
+					for (flow,rows) in val.items():
+						bypass_flow_rates.append(flow)
+						df = pd.concat([df,pd.DataFrame(rows)])
+						bypasses_added += len(rows)
 
-		blank_rows_needed = 21 - bypasses_added
+			blank_rows_needed = 21 - bypasses_added
 
-		#add blank bypass rows
-		blank_df = []
-		for i in range(blank_rows_needed):
-			blank_df.append([None for i in df.columns])
-		blank_df=pd.DataFrame(blank_df,columns=df.columns)
-		df=pd.concat([df,blank_df])
-
-
-		#now add rxn rows
-		for (key,val) in dataset.items():
-			if key != -999: #skip bypass rows
-				rows_added = 0
-				for i,(flow,rows) in enumerate(val.items()):
-					curr_bp_flow = bypass_flow_rates[i]
-					if flow == curr_bp_flow:
-						df = pd.concat([df,pd.DataFrame(rows,columns=df.columns)])
-					else:
-						blank_df = []
-						for i in range(3):
-							blank_df.append([None for i in df.columns])
-						blank_df=pd.DataFrame(blank_df,columns=df.columns)
-						df=pd.concat([df,blank_df])
-					i +=1
-					rows_added += 3
-
-				#make up the rest of the rows with blanks	
-				blank_df = []
-				for i in range(21-rows_added):
-					blank_df.append([None for i in df.columns])
-				blank_df=pd.DataFrame(blank_df,columns=df.columns)
-				df=pd.concat([df,blank_df])
-				rows_added = 0
-				i = 0 
+			#add blank bypass rows
+			blank_df = []
+			for i in range(blank_rows_needed):
+				blank_df.append([None for i in df.columns])
+			blank_df=pd.DataFrame(blank_df,columns=df.columns)
+			df=pd.concat([df,blank_df])
 
 
-		#final dataframe edits
-		df = df.drop(['level_0','index'],axis=1)
-		df["GC Time Stamp"] = df["GC Time Stamp"].apply(lambda x: x if x is None else time.ctime(x)) #convert to readable time
+			#now add rxn rows
+			for (key,val) in dataset.items():
+				if key != -999: #skip bypass rows
+					rows_added = 0
+					for i,(flow,rows) in enumerate(val.items()):
+						curr_bp_flow = bypass_flow_rates[i]
+						if flow == curr_bp_flow:
+							df = pd.concat([df,pd.DataFrame(rows,columns=df.columns)])
+						else:
+							blank_df = []
+							for i in range(3):
+								blank_df.append([None for i in df.columns])
+							blank_df=pd.DataFrame(blank_df,columns=df.columns)
+							df=pd.concat([df,blank_df])
+						i +=1
+						rows_added += 3
 
-		#https://stackoverflow.com/questions/42370977/how-to-save-a-new-sheet-in-an-existing-excel-file-using-pandas
-		book = load_workbook(filestr)
-		book.remove(book['gc_data_from_prog'])
+					#make up the rest of the rows with blanks	
+					blank_df = []
+					for i in range(21-rows_added):
+						blank_df.append([None for i in df.columns])
+					blank_df=pd.DataFrame(blank_df,columns=df.columns)
+					df=pd.concat([df,blank_df])
+					rows_added = 0
+					i = 0 
 
-		writer = pd.ExcelWriter(filestr, engine = 'openpyxl')
-		writer.book = book
-		df.to_excel(writer, sheet_name = 'gc_data_from_prog',index=False)
-		writer.save()
-		writer.close()
-	print("Successfully wrote to analysis files.")
+
+			#final dataframe edits
+			df = df.drop(['level_0','index'],axis=1)
+			df["GC Time Stamp"] = df["GC Time Stamp"].apply(lambda x: x if x is None else time.ctime(x)) #convert to readable time
+
+			#https://stackoverflow.com/questions/42370977/how-to-save-a-new-sheet-in-an-existing-excel-file-using-pandas
+			book = load_workbook(filestr)
+			book.remove(book['gc_data_from_prog'])
+
+			writer = pd.ExcelWriter(filestr, engine = 'openpyxl')
+			writer.book = book
+			df.to_excel(writer, sheet_name = 'gc_data_from_prog',index=False)
+			writer.save()
+			writer.close()
+		print("Successfully wrote to analysis files.")
 
 
 

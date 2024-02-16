@@ -2,6 +2,7 @@
 import os
 import json
 import click
+import asyncio
 import shutil
 import pathlib
 import auto_rxn
@@ -36,7 +37,7 @@ def main(recipe_file,settings_file,recipe_directory,settings_directory,storage_d
 		if run_or_analyze == "just_dump":
 			postrun_analysis.analyze(rxn_dirname,settings_dirname,just_dump=True,six_flow=False)
 		elif run_or_analyze == "analyze_6flow":
-			postrun_analysis.analyze(rxn_dirname,settings_dirname,just_dump=True,six_flow=True)
+			postrun_analysis.analyze(rxn_dirname,settings_dirname,just_dump=False,six_flow=True)
 		else:
 			postrun_analysis.analyze(rxn_dirname,settings_dirname,just_dump=False,six_flow=False)
 	if run_or_analyze == "run":
@@ -139,7 +140,7 @@ def main(recipe_file,settings_file,recipe_directory,settings_directory,storage_d
 		click.echo('Subdirectory successfully created and populated.')
 
 
-		auto_rxn.run_rxn(inputs_df,settings_json,rxn_name,rxn_dirname,mock)
+		asyncio.run(auto_rxn.run_rxn(inputs_df,settings_json,rxn_name,rxn_dirname,mock))
 
 if __name__ == "__main__":
 	main()

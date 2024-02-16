@@ -1,14 +1,29 @@
 import serial
 import alicat
 import time
-
+import os
+import csv
+import tabulate 
+import copy
 class Device():
-	def __init__(self,params,config,mock=False):
+	def __init__(self,params,config,mock=False,rxn_dir=None):
 		self.config = config
 		self.params = params
 		self.wait_time = self.config["Wait Time (sec)"]
 
 		self.subdevices = {}
+
+		self.rxn_dirname = rxn_dir
+		self.logfile_location = os.path.join(self.rxn_dirname, "{}.csv".format("6flow_flow_pv_log"))
+		self.logtimer = time.time()
+		self.log_time_interval = 10 #seconds
+		self.cached_pv = None
+		self.reactors = ["1","2","3","4","5","6"]
+		self.headers = copy.copy(self.reactors)
+		self.headers.insert(0,"Time")
+		with open(self.logfile_location,'w') as f:
+			csv_writer = csv.writer(f, delimiter=',', lineterminator='\n',quoting=csv.QUOTE_MINIMAL)
+			csv_writer.writerow(self.headers) #write header
 
 		if mock:
 			for subdev_name in params.keys(): #for each subdevice in input file
@@ -16,24 +31,75 @@ class Device():
 		else:
 
 			#initializing each controller with its specific max flow, name, etc.
-			for subdev_name in config["Subdevices"].keys():
-				self.subdevices[subdev_name] = Subdevice(subdev_name,params[subdev_name],config["Subdevices"][subdev_name],config["port"])
-				time.sleep(1)	
+
+			if "Bulk SP" in params.keys(): #activate bulk SP initialization:
+				for subdev_name in config["Subdevices"].keys():
+					self.subdevices[subdev_name] = Subdevice(subdev_name,params["Bulk SP"],config["Subdevices"][subdev_name],config["port"])
+					time.sleep(0.05)
+			else:
+				for subdev_name in config["Subdevices"].keys():
+					self.subdevices[subdev_name] = Subdevice(subdev_name,params[subdev_name],config["Subdevices"][subdev_name],config["port"])
+					time.sleep(0.05)	
 
 	def get_pv(self,subdev_name):
-		return self.subdevices[subdev_name].get_pv()
+		if subdev_name == "Bulk SP":
+			elapsed_time = time.time()-self.logtimer
+
+			if elapsed_time > self.log_time_interval  or self.cached_pv == None:
+				flows = [time.ctime(time.time())]
+				for i in self.reactors:
+					if self.subdevices[i].active_flow_controller == 1:
+						flows.append(self.subdevices[i].get_pv())
+						time.sleep(0.05)
+					else:
+						flows.append(-1)
+
+				#write to logfile
+				with open(self.logfile_location,'a') as f:
+					csv_writer = csv.writer(f, delimiter=',', lineterminator='\n', quoting=csv.QUOTE_MINIMAL)
+					csv_writer.writerow(flows)
+				
+				#Display
+				print("================== Flows ===================")
+				print(tabulate.tabulate([flows],headers=self.headers,floatfmt=".2f"))
+				print("\n")
+
+				self.logtimer = time.time()
+				self.cached_pv = sum([i for i in flows if (i != -1 and type(i) != str)])/len([i for i in flows if (i != -1 and type(i) != str)])
+				return self.cached_pv #average pv of all MFCs reading
+			else:
+				return self.cached_pv
+			
+		else:
+			return self.subdevices[subdev_name].get_pv()
 
 	def get_sp(self,subdev_name):
 		return self.subdevices[subdev_name].get_sp()
 
 	def set_sp(self,subdev_name,sp_value):
-		return self.subdevices[subdev_name].set_sp(sp_value)
+		bool_ret = True
+		if subdev_name == "Bulk SP":
+			for subdev_name in self.reactors:
+				if self.subdevices[subdev_name].active_flow_controller==1: #is flow controller that is active
+					bool_ret= bool_ret and self.subdevices[subdev_name].set_sp(sp_value) #take the AND value of all the configured MFCs
+
+			self.subdevices["Bulk SP"].set_sp(sp_value)
+			return bool_ret
+
+		else:
+			return self.subdevices[subdev_name].set_sp(sp_value)
 
 	def is_emergency(self,subdev_name,pv_read_time,sp_set_time,current_sp,current_pv):
 		return self.subdevices[subdev_name].is_emergency(self.wait_time,pv_read_time,sp_set_time,current_sp,current_pv)
 
 	def get_subdevice_names(self):
-		return self.subdevices.keys()
+		if "Bulk SP" in self.subdevices.keys():
+			subdev_names = list(self.subdevices.keys())
+			for r in self.reactors:
+				subdev_names.remove(r)
+			return subdev_names
+		else:
+			return self.subdevices.keys()
 
 	def get_emergency_sp(self,subdev_name):
 		return self.subdevices[subdev_name].emergency_setting
@@ -75,7 +141,9 @@ class Subdevice():
 		self.emergency_setting = float(params["Emergency Setpoint"])
 		self.current_sp = None
 		self.dev_lim = float(config["Dev Lim"])
-		self.dev = alicat.FlowController(port=port,address=config["node"])
+		self.active_flow_controller = config["active_flow_controller"]
+		if name != "Bulk SP":
+			self.dev = alicat.FlowController(port=port,address=config["node"])
 
 	def is_emergency(self,wait_time,pv_read_time,sp_set_time,current_sp,current_pv):
 		if (pv_read_time-sp_set_time > wait_time):
@@ -93,17 +161,23 @@ class Subdevice():
 
 
 	def set_sp(self,setpoint_in):
-		try:
-			self.dev.set_flow_rate(float(setpoint_in))
-		except:
-			return False
-		time.sleep(1)
-		self.current_sp = setpoint_in
-		if self.dev.get()['setpoint'] == setpoint_in:
+
+		if self.name == "Bulk SP":
+			self.current_sp = setpoint_in
 			return True
 
 		else:
-			return False
+			try:
+				self.dev.set_flow_rate(float(setpoint_in))
+			except:
+				return False
+			time.sleep(0.05)
+			self.current_sp = setpoint_in
+			if self.dev.get()['setpoint'] == setpoint_in:
+				return True
+
+			else:
+				return False
 
 
 	def get_sp(self):

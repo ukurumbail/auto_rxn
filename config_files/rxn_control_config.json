@@ -17,11 +17,12 @@
 			"Method Name" : {"Max Setting" : "None","Analysis Device Type" : "None","Dynamicity":"Static"},
 			"Delay Time" : {"Max Setting" : "None","Analysis Device Type" : "None","Dynamicity":"Static"},
 			"Injection Offset" : {"Max Setting" : "None","Analysis Device Type" : "None","Dynamicity":"Static"}
-			}
+			},
+		"async":0
 		},
 
-	"eurotherm_3216" : {
-		"port" : "COM6",
+	"eurotherm_3216_async" : {
+		"port" : "COM8",
 		"address" : 1,
 		"baudrate" : 9600,
 		"timeout" : 1,
@@ -33,16 +34,16 @@
 							  "SP Read Address" : 32772,
 							  "PV Read Address" : 32770,
 							   "Max Setting" : 800,
-							   "Change Wait Time" : 4200,
-							   "Dev Lim" : 33,
-							   "Dev Type" : "Change from previous",
+							   "Change Wait Time" : 15,
+							   "Dev Lim" : 800,
+							   "Dev Type" : "Do not check for emergency",
 								"Analysis Device Type" : "Reactor Temp",
-								"T Correction" : 21,"Dynamicity":"Dynamic"},
+								"T Correction" : 21,"Dynamicity":"Static"},
 			"Ramp Rate" : {   "Type" : "Long",
 							  "SP Write Address" : "None",
 							  "SP Read Address" : "None",
 							  "PV Read Address" : "None",
-							   "Max Setting" : 100,
+							   "Max Setting" : 200,
 							   "Change Wait Time" : 5,
 							   "Dev Lim" : 0.01,
 							   "Dev Type" : "Within setpt tolerance",
@@ -72,51 +73,74 @@
 						    "Dev Type" : "Within setpt tolerance",
 						    "Analysis Device Type" : "None",
 						    "Trigger Threshold" : 1,
-						    "Dynamicity" : "Dynamic"
+						    "Dynamicity" : "Static"
 			},
 			"Test" : {"Register" : 131, "Value" : 1,"Max Setting" : "None","Analysis Device Type" : "None","Dynamicity":"Static"}
-			}
+			},
+		"async":1
 		},
 	"alicat_bb9" : {
 		"port" : "COM4",
 		"baudrate" : 19200,
 		"Wait Time (sec)" : 10,
 		"Subdevices" : {
+			"Bulk SP" : {
+				"node":"Not Applicable",
+				"Max Setting" : 20,
+				"Correction Factor" : 1,
+				"Dev Lim" : 2,
+			"Analysis Device Type" : "Flow",
+			"Major Reactant" : "False","Dynamicity":"Static",
+			"active_flow_controller":0},
+			"1" : {
+				"node" : "D",
+				"Max Setting" : 20,
+				"Correction Factor" : 1,
+				"Dev Lim" : 2,
+			"Analysis Device Type" : "Flow",
+			"Major Reactant" : "False","Dynamicity":"Static",
+			"active_flow_controller":1},
 			"2" : {
 				"node" : "H",
 				"Max Setting" : 20,
 				"Correction Factor" : 1,
 				"Dev Lim" : 2,
 			"Analysis Device Type" : "Flow",
-			"Major Reactant" : "False","Dynamicity":"Static"},
+			"Major Reactant" : "False","Dynamicity":"Static",
+			"active_flow_controller":1},
 			"3" : {
 				"node" : "B",
 				"Max Setting" : 20,
 				"Correction Factor" : 1,
 				"Dev Lim" : 2,
 			"Analysis Device Type" : "Flow",
-			"Major Reactant" : "False","Dynamicity":"Static"},
-		 	"4" : {
+			"Major Reactant" : "False","Dynamicity":"Static",
+			"active_flow_controller":1},
+			"4" : {
 				"node" : "G",
 				"Max Setting" : 20,
 				"Correction Factor" : 1,
 				"Dev Lim" : 2,
 			"Analysis Device Type" : "Flow",
-			"Major Reactant" : "False","Dynamicity":"Static"},
+			"Major Reactant" : "False","Dynamicity":"Static",
+			"active_flow_controller":1},
 			"5" : {
 				"node" : "F",
 				"Max Setting" : 20,
 				"Correction Factor" : 1,
 				"Dev Lim" : 2,
 			"Analysis Device Type" : "Flow",
-			"Major Reactant" : "False","Dynamicity":"Static"},
+			"Major Reactant" : "False","Dynamicity":"Static",
+			"active_flow_controller":1},
 			"6" : {
 				"node" : "C",
 				"Max Setting" : 20,
 				"Correction Factor" : 1,
 				"Dev Lim" : 2,
 			"Analysis Device Type" : "Flow",
-			"Major Reactant" : "False","Dynamicity":"Static"}}},
+			"Major Reactant" : "False","Dynamicity":"Static",
+			"active_flow_controller":1}},
+		"async":0},
 	"bronkhorst_mfc" : {
 		"port" : "COM3",
 		"baudrate" : 38400,
@@ -158,7 +182,8 @@
 				"Flow Dev Lim" : 120,
 			"Analysis Device Type" : "Flow",
 			"Major Reactant" : "False","Dynamicity":"Static"}
-			}
+			},
+		"async":0
 		},
 	"vici_valves" : {
 		"port" : "COM4",
@@ -178,7 +203,8 @@
 				"Dev Lim" : 999999,
 			"Analysis Device Type" : "Valve","Dynamicity":"Static"
 			}
-		}
+		},
+		"async":0
 	},
 	"vici_valves_8way" : {
 		"port" : "COM7",
@@ -192,6 +218,6 @@
 				"Dev Lim" : 999999,
 			"Analysis Device Type" : "Valve","Dynamicity":"Static"
 			}
-		}
-	}
+		},
+	"async":0}
 }

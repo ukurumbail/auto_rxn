@@ -6,6 +6,8 @@ import time
 import json
 import csv
 import os
+import asyncio
+import traceback
 
 class Reaction():
 	def __init__(self,inputs_df,settings_json,rxn_name, rxn_dirname,mock):
@@ -20,11 +22,15 @@ class Reaction():
 		self.dynamic_subdevices = [] #a list of subdevice names for devices classified as dynamic (setpt changes during a step)
 		#set up 
 		self.num_subdevs = 0
+		self.async_devices = []
 		for subdevice_name in inputs_df.columns[1:]:
+			print(subdevice_name)
 			self.num_subdevs += 1
 			parent_device_name = inputs_df[subdevice_name][2]
 			units = inputs_df[subdevice_name][0]
 			emergency_setting = float(inputs_df[subdevice_name][1])
+
+			#setting dynamic devices
 			if settings_json[parent_device_name]["Subdevices"][subdevice_name]["Dynamicity"] == "Static":
 				pass
 			elif settings_json[parent_device_name]["Subdevices"][subdevice_name]["Dynamicity"] == "Dynamic":
@@ -46,8 +52,16 @@ class Reaction():
 		for device_name in self.device_parameters.keys():										
 			self.modules[device_name] = importlib.import_module(device_name)	
 			self.device_config[device_name] = settings_json[device_name]
-			self.devices[device_name] = self.modules[device_name].Device(self.device_parameters[device_name],self.device_config[device_name],mock = mock)
+			self.devices[device_name] = self.modules[device_name].Device(self.device_parameters[device_name],self.device_config[device_name],mock = mock,rxn_dir=self.rxn_dirname)
+			#setting async devices
+			if settings_json[device_name]["async"] == 0:
+				pass
+			elif settings_json[device_name]["async"] == 1:
+				self.async_devices.append(device_name)
+			else:
+				raise ValueError ("Async must be 0 or 1 for {}".format(device_name))
 
+			print("Subdevices of {} are {}".format(device_name,self.devices[device_name].subdevices.keys()))
 		#set up logging file
 		self.log_interval = float(settings_json["logger"]["log_interval (s)"]) #in seconds
 		self.logfile_location = os.path.join(self.rxn_dirname, "rxn_log_{}.csv".format(self.rxn_name))
@@ -61,7 +75,6 @@ class Reaction():
 			self.log_header[i+(self.num_subdev)] += " PV"
 		self.log_header.insert(0, "Reaction Name")
 		self.log_header.insert(0,"Time")
-
 		with open(self.logfile_location,'w') as f:
 			csv_writer = csv.writer(f, delimiter=',', lineterminator='\n',quoting=csv.QUOTE_MINIMAL)
 			csv_writer.writerow(self.log_header)
@@ -118,6 +131,7 @@ class Reaction():
 		else:
 			for device_name in self.devices.keys():
 				for subdevice_name in self.devices[device_name].get_subdevice_names():
+					
 					if self.devices[device_name].set_sp(subdevice_name,self.setpt_matrix[subdevice_name].iloc[self.next_sp]): #device should return whether setpt took successfully or not
 						pass
 					else:
@@ -126,7 +140,6 @@ class Reaction():
 			self.setpoint_switch_time = time.time()
 			self.current_sp += 1
 			self.next_sp += 1	
-
 
 	def log(self,headers=True):
 		self.prev_log_time = time.time()
@@ -146,10 +159,13 @@ class Reaction():
 			csv_writer = csv.writer(f, delimiter=',', lineterminator='\n', quoting=csv.QUOTE_MINIMAL)
 			csv_writer.writerow(self.log_values)
 
+		#Display
+		print("=================== PVs ====================")
 		if headers:
 			print(tabulate.tabulate([self.log_values],headers=self.log_header,floatfmt=".2f"))
 		else:
 			print(tabulate.tabulate([self.log_values],floatfmt=".2f"))			
+		print("\n")
 	
 	def set_emergency_sps(self):
 		print("\nSetting emergency setpoints...\n")
@@ -193,12 +209,10 @@ class Reaction():
 		print("Switched to emergency setpoints. Make sure you implement this so as to avoid in the future...")
 		raise NotImplementedError()
 
-def run_rxn(inputs_df,settings_json,rxn_name,rxn_dirname,mock):
-	print("\nInitializing devices...")
-	rxn = Reaction(inputs_df,settings_json,rxn_name,rxn_dirname,mock)
-	
-	print("Starting reaction.")
 
+async def run_inner_rxn_loop(rxn):
+
+	print("Starting reaction.")
 
 	#beginning reaction
 	print("\nSwitching setpoints...")
@@ -220,7 +234,7 @@ def run_rxn(inputs_df,settings_json,rxn_name,rxn_dirname,mock):
 					print("\nSwitching setpoints...")
 					rxn.set_setpts()
 					print("Setpoints switched.\n")
-			time.sleep(5)
+			await asyncio.sleep(5)
 		else:
 			rxn.set_setpts(only_dynamic=True) #update SP for all dynamic subdevices
 
@@ -240,22 +254,23 @@ def run_rxn(inputs_df,settings_json,rxn_name,rxn_dirname,mock):
 					rxn.log_gc()
 					rxn.gc_needs_logging = False
 			if not rxn.gc.all_samples_collected():
-				time.sleep(2)
+				await asyncio.sleep(2)
 				if rxn.gc.ready():
 					print("\nInjecting new GC sample...")
 					if rxn.gc.inject():
 						print("Injection successful.\n")
+						await asyncio.sleep(75)
 						rxn.create_gc_log()
 						rxn.gc_needs_logging = True
 					else:
 						print("Injection unsuccessful!\n")
 						rxn.email("Unsuccessful GC injection occurred @ {}\n".format(time.ctime(time.time())))
 
-		time.sleep(5)
+		await asyncio.sleep(5)
 
 
 	while not rxn.gc.ready(): #wait for gc to finish up if needed
-		time.sleep(10)
+		await asyncio.sleep(10)
 		rxn.log()
 
 	if rxn.gc_needs_logging: #finish logging the last gc run
@@ -272,4 +287,25 @@ def run_rxn(inputs_df,settings_json,rxn_name,rxn_dirname,mock):
 	print("Reaction completed. Finished logging.")
 
 
+async def run_rxn(inputs_df,settings_json,rxn_name,rxn_dirname,mock):
+	print("\nInitializing devices...")
+	rxn = Reaction(inputs_df,settings_json,rxn_name,rxn_dirname,mock)
 
+	#Establish asynchronous event loop
+	tasks = set()
+	tasks.add(asyncio.create_task(run_inner_rxn_loop(rxn)))
+	for device_name in rxn.device_parameters.keys():
+		if device_name in rxn.async_devices: #Device is built to handle asynchronous comms. If so it will expose an async_run function
+			tasks.add(asyncio.create_task(rxn.devices[device_name].async_run()))
+
+
+	for task in tasks:
+		try:
+			await task
+		except Exception:
+			with open(rxn_dirname+"/error_log.txt",'w') as f:
+				traceback_msg = traceback.format_exc()
+				f.write(traceback_msg)
+			print(traceback_msg)
+
+	

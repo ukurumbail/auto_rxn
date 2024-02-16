@@ -2,7 +2,7 @@ import serial
 import time
 
 class Device():
-	def __init__(self,params,config,mock=False):
+	def __init__(self,params,config,mock=False,rxn_dir=None):
 		self.config = config
 		self.params = params
 		self.flow_wait_time = self.config["Flow Wait Time (sec)"]
@@ -25,7 +25,7 @@ class Device():
 			for subdev_name in config["Subdevices"].keys():
 				self.subdevices[subdev_name] = Subdevice(subdev_name,params[subdev_name],config["Subdevices"][subdev_name])
 				self.subdevices[subdev_name].set_control_mode(self.ser) #Sets control mode to accept RS-232 setpoints
-				time.sleep(1)	
+				time.sleep(0.25)	
 
 	def get_pv(self,subdev_name):
 		return self.subdevices[subdev_name].get_pv(self.ser)

@@ -4,7 +4,7 @@ import requests
 import random
 
 class Device():
-	def __init__(self,params,config,mock=False):
+	def __init__(self,params,config,mock=False,rxn_dir=None):
 		self.mock = mock
 		self.config = config
 		self.params = params
@@ -46,7 +46,7 @@ class Device():
 	def get_last_run_id(self):
 		if self.mock:
 			return 'MOCK RUN {}'.format(random.randint(0,10000000))
-		time.sleep(2)
+		time.sleep(0.05)
 		try:
 			get_request = requests.get('http://' + self.ip + '/v1/lastRun')
 			get_request_json = get_request.json()
@@ -123,7 +123,6 @@ class Device():
 			if get_request.status_code == 200:
 				self.subdevices["Number of Samples"].num_injections += 1 
 				self.last_injection_time = time.time()
-				time.sleep(75)
 				return True		
 			else: #Status code of 500 returned if injection unsuccessful
 				return False
@@ -187,11 +186,6 @@ class Mock_Subdevice():
 
 	def get_sp(self):
 		return self.current_sp
-
-	def delay_time(self):
-		if self.is_injection_counter == self.num_injections:
-			time.sleep(delay_time)
-		return True
 
 
 class Subdevice():
