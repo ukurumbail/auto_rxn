@@ -155,7 +155,7 @@ class Device():
 
 		#First, check and see if you have a runaway reaction. If reactor is way too hot, make the switch right away.
 		furnace_reactor_delta = abs(self.tracker_reactor_pv_register[-1] - self.tracker_furnace_pv_register[-1])
-		if  furnace_reactor_delta > 50 and len(self.tracker_reactor_pv_register) > 10 and not self.mock:
+		if  furnace_reactor_delta > 150 and len(self.tracker_reactor_pv_register) > 10 and not self.mock:
 			print("Reactor is getting too far from setpoint. Likely exothermic reaction. Switching setpoint early.")
 			print("Current Delta b/w furnace PV and reactor PV: {}".format(furnace_reactor_delta))
 			return True 
@@ -208,8 +208,10 @@ class Device():
 							elif self.get_sp("Reactor Temp") == 2: #cascade control
 								self.cascade_in_progress = True
 								self.casacde_start = None 
-								self.pid = PID(1,1/120.0,20,setpoint=self.new_SP) 
-								self.pid.output_limits = (self.new_SP-50,self.new_SP+50)
+								#self.pid = PID(1,1/120.0,20,setpoint=self.new_SP) # high-T PID parameters
+								self.pid  = PID(1.5,1/444.56,74.09,setpoint=self.new_SP) # 250C PID parameters
+								#self.pid  = PID(2,1/566.81,94.47,setpoint=self.new_SP) # 175C PID parameters
+								self.pid.output_limits = (self.new_SP-200,self.new_SP+50)
 								self.pid.sample_time = 1 #minimum seconds b/w updates
 
 								self.pid.auto_mode = False #turn pid off until control begins
@@ -285,7 +287,7 @@ class Device():
 
 					elif self.cascade_in_progress: #Execute cascade control if active
 						if self.pid.auto_mode == False: 
-							self.pid.set_auto_mode(True,last_output=self.new_SP) #turn pid on with 0 integral error
+							self.pid.set_auto_mode(True,last_output=self.get_sp("Furnace Temp")) #turn pid on with 0 integral error
 
 						pv = self.get_pv("Reactor Temp")
 						if pv < self.min_SP or pv > self.max_SP: #sometimes TC returns a bad reading. In this case, skip it
@@ -355,6 +357,10 @@ class Subdevice():
 		self.dev_type = config["Dev Type"]
 		self.config = config
 		self.write_counter = 0
+		if self.dev_type == "Sensor Break":
+			self.sensor_break_counter = 0
+			self.sensor_break_value = config["Sensor Break Value"]
+			self.sensor_break_max = config["Sensor Break Max"]
 
 		if self.name == "Reactor Temp":
 
@@ -388,6 +394,18 @@ class Subdevice():
 					return [False,self.name,current_sp,current_pv] 
 			elif self.dev_type == "Do not check for emergency":
 				return [False,self.name,current_sp,current_pv]
+
+			elif self.dev_type == "Sensor Break": #Check for x number of bad PV values in a row. Error out if this is achieved.
+				if int(current_pv) == int(self.sensor_break_value):
+					self.sensor_break_counter += 1
+					print(f'Bad Sensor Value detected in {self.name}. Break Counter: {self.sensor_break_counter} of {self.sensor_break_max}')
+				else:
+					self.sensor_break_counter=0 #reset counter
+				if self.sensor_break_counter >= self.sensor_break_max:
+					return [True,self.name,current_sp,current_pv]
+				else:
+					return [False,self.name,current_sp,current_pv]
+				 
 			else:
 				print("Not implemented!")
 				return [True,self.name,current_sp,current_pv] 
@@ -400,7 +418,12 @@ class Subdevice():
 			return dev.read_float(self.pv_read_address)
 		elif self.name == "Reactor Temp":
 
-			address = 7020  # Address for AIN10 configured output (degC)
+			address = 7020  # Address for AIN10 configured output (degC) #R1
+			#address = 7016  # Address for AIN10 configured output (degC) #R2
+			#address = 7012  # Address for AIN10 configured output (degC) #R3
+			#address = 7008  # Address for AIN10 configured output (degC) #R4
+			#address = 7004  # Address for AIN10 configured output (degC) #R5
+			#address = 7000  # Address for AIN10 configured output (degC) #R6
 			dataType = ljm.constants.FLOAT32
 			result = ljm.eReadAddress(self.handle, address, dataType)
 			return result

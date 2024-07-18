@@ -1,0 +1,34 @@
+			// "Bulk SP" : {
+			// 	"node":"Not Applicable",
+			// 	"Max Setting" : 20,
+			// 	"Correction Factor" : 1,
+			// 	"Dev Lim" : 2,
+			// "Analysis Device Type" : "Flow",
+			// "Major Reactant" : "False","Dynamicity":"Static",
+			// "active_flow_controller":0},
+						"2" : {
+				"node" : "H",
+				"Max Setting" : 20,
+				"Correction Factor" : 1,
+				"Dev Lim" : 2,
+			"Analysis Device Type" : "Flow",
+			"Major Reactant" : "False","Dynamicity":"Static",
+			"active_flow_controller":1},
+
+						"4" : {
+				"node" : "G",
+				"Max Setting" : 20,
+				"Correction Factor" : 1,
+				"Dev Lim" : 2,
+			"Analysis Device Type" : "Flow",
+			"Major Reactant" : "False","Dynamicity":"Static",
+			"active_flow_controller":1},
+
+						"6" : {
+				"node" : "C",
+				"Max Setting" : 20,
+				"Correction Factor" : 1,
+				"Dev Lim" : 2,
+			"Analysis Device Type" : "Flow",
+			"Major Reactant" : "False","Dynamicity":"Static",
+			"active_flow_controller":1}

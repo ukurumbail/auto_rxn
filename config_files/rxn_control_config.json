@@ -22,9 +22,10 @@
 		},
 
 	"eurotherm_3216_async" : {
-		"port" : "COM8",
+		"port" : "COM5",
 		"address" : 1,
 		"baudrate" : 9600,
+
 		"timeout" : 1,
 		"Test Register" : 131,
 		"Test Value" : 1,
@@ -49,19 +50,21 @@
 							   "Dev Type" : "Within setpt tolerance",
 								"Analysis Device Type" : "None","Dynamicity":"Static"},
 			"Reactor Temp" : {"Type" : "Float",
-							  "port" : "COM5",
+							  "port" : "COM4",
 							  "baudrate" : 38400,
 							  "SP Write Address" : "None",
 							  "SP Read Address" : "None",
 							  "PV Read Address" : "None",
 							   "Max Setting" : 800,
-							   "Change Wait Time" : 600,
+							   "Change Wait Time" : 0,
 							   "Dev Lim" : 3,
-							   "Dev Type" : "Do not check for emergency",
+							   "Dev Type" : "Sensor Break",
 							   "Expected dT/dt" : 0.165,
 							   "PID_params" : [1,1,0],
 							   "PID_sample_time" : 15,
 							   "PID_max_movement" : 5,
+							   "Sensor Break Value":-9999,
+							   "Sensor Break Max":5,
 								"Analysis Device Type" : "None","Dynamicity":"Static"},
 			"PV Offset" : { "Type" : "Float",
 						    "SP Write Address" : 33050,
@@ -83,8 +86,7 @@
 		"port" : "COM4",
 		"baudrate" : 19200,
 		"Wait Time (sec)" : 10,
-		"Subdevices" : {
-			"Bulk SP" : {
+		"Subdevices" : {"Bulk SP" : {
 				"node":"Not Applicable",
 				"Max Setting" : 20,
 				"Correction Factor" : 1,
@@ -100,24 +102,8 @@
 			"Analysis Device Type" : "Flow",
 			"Major Reactant" : "False","Dynamicity":"Static",
 			"active_flow_controller":1},
-			"2" : {
-				"node" : "H",
-				"Max Setting" : 20,
-				"Correction Factor" : 1,
-				"Dev Lim" : 2,
-			"Analysis Device Type" : "Flow",
-			"Major Reactant" : "False","Dynamicity":"Static",
-			"active_flow_controller":1},
 			"3" : {
 				"node" : "B",
-				"Max Setting" : 20,
-				"Correction Factor" : 1,
-				"Dev Lim" : 2,
-			"Analysis Device Type" : "Flow",
-			"Major Reactant" : "False","Dynamicity":"Static",
-			"active_flow_controller":1},
-			"4" : {
-				"node" : "G",
 				"Max Setting" : 20,
 				"Correction Factor" : 1,
 				"Dev Lim" : 2,
@@ -132,14 +118,32 @@
 			"Analysis Device Type" : "Flow",
 			"Major Reactant" : "False","Dynamicity":"Static",
 			"active_flow_controller":1},
-			"6" : {
+									"2" : {
+				"node" : "H",
+				"Max Setting" : 20,
+				"Correction Factor" : 1,
+				"Dev Lim" : 2,
+			"Analysis Device Type" : "Flow",
+			"Major Reactant" : "False","Dynamicity":"Static",
+			"active_flow_controller":1},
+						"4" : {
+				"node" : "G",
+				"Max Setting" : 20,
+				"Correction Factor" : 1,
+				"Dev Lim" : 2,
+			"Analysis Device Type" : "Flow",
+			"Major Reactant" : "False","Dynamicity":"Static",
+			"active_flow_controller":1},
+
+						"6" : {
 				"node" : "C",
 				"Max Setting" : 20,
 				"Correction Factor" : 1,
 				"Dev Lim" : 2,
 			"Analysis Device Type" : "Flow",
 			"Major Reactant" : "False","Dynamicity":"Static",
-			"active_flow_controller":1}},
+			"active_flow_controller":1}
+		},
 		"async":0},
 	"bronkhorst_mfc" : {
 		"port" : "COM3",
@@ -178,7 +182,7 @@
 			"H2" : {
 				"node" : 60,
 				"Max Setting" : 120,
-				"Correction Factor" : 2.548,
+				"Correction Factor" : 0.9879,
 				"Flow Dev Lim" : 120,
 			"Analysis Device Type" : "Flow",
 			"Major Reactant" : "False","Dynamicity":"Static"}
