@@ -32,14 +32,15 @@ class Device():
 
 			#initializing each controller with its specific max flow, name, etc.
 
-			if "Bulk SP" in params.keys(): #activate bulk SP initialization:
-				for subdev_name in config["Subdevices"].keys():
-					self.subdevices[subdev_name] = Subdevice(subdev_name,params["Bulk SP"],config["Subdevices"][subdev_name],config["port"])
-					time.sleep(0.05)
-			else:
-				for subdev_name in config["Subdevices"].keys():
-					self.subdevices[subdev_name] = Subdevice(subdev_name,params[subdev_name],config["Subdevices"][subdev_name],config["port"])
-					time.sleep(0.05)	
+
+			for subdev_name in params.keys():
+				print(subdev_name)
+				self.subdevices[subdev_name] = Subdevice(subdev_name,params[subdev_name],config["Subdevices"][subdev_name],config["port"])
+				if subdev_name == "Bulk SP": #if bulk SP, initialize each reactor individually as well
+					for reactor in self.reactors:
+						time.sleep(0.05)
+						self.subdevices[reactor] =Subdevice(reactor,params["Bulk SP"],config["Subdevices"][reactor],config["port"]) #params must come from Bulk SP since reactor is not invidiually driven from recipe.
+				time.sleep(0.05)	
 
 	def get_pv(self,subdev_name):
 		if subdev_name == "Bulk SP":
@@ -157,7 +158,13 @@ class Subdevice():
 
 	def get_pv(self):
 		""" Read the actual flow """ #If 10 errors then returns -99
-		return self.dev.get()['mass_flow']
+		if self.dev.get()['control_point'] == "gauge pressure":
+			time.sleep(0.05)
+			return float(self.dev.get()['pressure'])
+		else:
+			time.sleep(0.05)
+			return float(self.dev.get()['mass_flow'])
+
 
 
 	def set_sp(self,setpoint_in):
@@ -168,12 +175,17 @@ class Subdevice():
 
 		else:
 			try:
-				self.dev.set_flow_rate(float(setpoint_in))
+				if self.dev.get()['control_point'] == "gauge pressure":
+					time.sleep(0.05)
+					self.dev.set_pressure(float(setpoint_in))
+				else:
+					time.sleep(0.05)
+					self.dev.set_flow_rate(float(setpoint_in))
 			except:
 				return False
 			time.sleep(0.05)
 			self.current_sp = setpoint_in
-			if self.dev.get()['setpoint'] == setpoint_in:
+			if float(self.dev.get()['setpoint']) == setpoint_in:
 				return True
 
 			else:

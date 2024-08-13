@@ -22,7 +22,7 @@
 		},
 
 	"eurotherm_3216_async" : {
-		"port" : "COM5",
+		"port" : "COM3",
 		"address" : 1,
 		"baudrate" : 9600,
 
@@ -34,7 +34,7 @@
 							  "SP Write Address" : 32772,
 							  "SP Read Address" : 32772,
 							  "PV Read Address" : 32770,
-							   "Max Setting" : 800,
+							   "Max Setting" : 950,
 							   "Change Wait Time" : 15,
 							   "Dev Lim" : 800,
 							   "Dev Type" : "Do not check for emergency",
@@ -83,7 +83,7 @@
 		"async":1
 		},
 	"alicat_bb9" : {
-		"port" : "COM4",
+		"port" : "COM6",
 		"baudrate" : 19200,
 		"Wait Time (sec)" : 10,
 		"Subdevices" : {"Bulk SP" : {
@@ -134,7 +134,6 @@
 			"Analysis Device Type" : "Flow",
 			"Major Reactant" : "False","Dynamicity":"Static",
 			"active_flow_controller":1},
-
 						"6" : {
 				"node" : "C",
 				"Max Setting" : 20,
@@ -142,11 +141,27 @@
 				"Dev Lim" : 2,
 			"Analysis Device Type" : "Flow",
 			"Major Reactant" : "False","Dynamicity":"Static",
-			"active_flow_controller":1}
+			"active_flow_controller":1},
+			"bpr_tube" : {
+				"node" : "A",
+				"Max Setting" : 5,
+				"Correction Factor" : 1,
+				"Dev Lim" : 2,
+			"Analysis Device Type" : "Flow",
+			"Major Reactant" : "False","Dynamicity":"Static",
+			"active_flow_controller":0},
+			"bpr_shell" : {
+				"node" : "I",
+				"Max Setting" : 5,
+				"Correction Factor" : 1,
+				"Dev Lim" : 2,
+			"Analysis Device Type" : "Flow",
+			"Major Reactant" : "False","Dynamicity":"Static",
+			"active_flow_controller":0}
 		},
 		"async":0},
 	"bronkhorst_mfc" : {
-		"port" : "COM3",
+		"port" : "COM7",
 		"baudrate" : 38400,
 		"timeout" : 1,
 		"Flow Wait Time (sec)" : 60,
@@ -190,7 +205,7 @@
 		"async":0
 		},
 	"vici_valves" : {
-		"port" : "COM4",
+		"port" : "COM8",
 		"baudrate" : 9600,
 		"timeout" : 1,
 		"Wait Time (sec)" : 5, 
@@ -211,7 +226,7 @@
 		"async":0
 	},
 	"vici_valves_8way" : {
-		"port" : "COM7",
+		"port" : "COM5",
 		"baudrate" : 9600,
 		"timeout" : 1,
 		"Wait Time (sec)" : 5, 
